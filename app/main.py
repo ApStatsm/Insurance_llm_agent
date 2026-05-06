@@ -48,7 +48,6 @@ except ModuleNotFoundError:
 
 from app.ui.auth_views import clear_auth_session, render_logged_in_sidebar, render_login_screen
 from app.ui.chat_views import (
-    render_multi_policy_analysis,
     render_requested_report_parts,
     render_ticket_summary,
     render_uploaded_document_analysis,
@@ -462,7 +461,6 @@ if chat_value:
                         diagnosis_result=diagnosis_result,
                         question=question,
                     )
-                    render_multi_policy_analysis(diagnosis_result)
                     render_uploaded_document_analysis(diagnosis_result)
                     render_requested_report_parts(diagnosis_result, requested_sections)
                     show_ticket_summary = _should_show_ticket_summary(

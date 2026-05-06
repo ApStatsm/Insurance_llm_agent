@@ -363,7 +363,6 @@ def render_chat_message(message: dict[str, Any], *, assistant_avatar: str | Path
             if message.get("content"):
                 st.markdown(_clean_text(message["content"]))
             if role == "assistant" and message.get("diagnosis_result"):
-                _render_multi_policy_analysis(message["diagnosis_result"])
                 _render_uploaded_document_analysis(message["diagnosis_result"])
                 _render_requested_report_parts(
                     message["diagnosis_result"],
