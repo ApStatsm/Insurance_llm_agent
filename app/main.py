@@ -21,6 +21,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 
 try:
+    from app.core.formatting import as_list, format_file_size, mask_customer_id, mask_display_value
     from app.pipeline import run_multi_agent_pipeline
     from app.pipeline.errors import to_user_friendly_error
     from app.services.agent_handoff_service import build_agent_handoff_summary
@@ -44,6 +45,7 @@ try:
 except ModuleNotFoundError:
     # Allow `streamlit run main.py` from inside `app/` directory.
     sys.path.append(str(Path(__file__).resolve().parent.parent))
+    from app.core.formatting import as_list, format_file_size, mask_customer_id, mask_display_value
     from app.pipeline import run_multi_agent_pipeline
     from app.pipeline.errors import to_user_friendly_error
     from app.services.agent_handoff_service import build_agent_handoff_summary
@@ -372,13 +374,7 @@ def _message_attachment(doc: dict[str, Any]) -> dict[str, Any]:
 
 
 def _format_file_size(size_bytes: int | None) -> str:
-    if not size_bytes:
-        return "크기 확인 중"
-    if size_bytes < 1024:
-        return f"{size_bytes}B"
-    if size_bytes < 1024 * 1024:
-        return f"{size_bytes / 1024:.1f}KB"
-    return f"{size_bytes / (1024 * 1024):.1f}MB"
+    return format_file_size(size_bytes)
 
 
 def _is_image_attachment(attachment: dict[str, Any]) -> bool:
@@ -399,11 +395,7 @@ def _render_attachments(attachments: list[dict[str, Any]] | None) -> None:
 
 
 def _as_list(value: Any) -> list[Any]:
-    if value is None:
-        return []
-    if isinstance(value, list):
-        return value
-    return [value]
+    return as_list(value)
 
 
 def _render_bullets(items: list[Any], empty_text: str = "없음") -> None:
@@ -521,17 +513,7 @@ def _render_requested_report_parts(
 
 
 def _mask_display_value(value: Any, *, kind: str = "") -> str:
-    text = str(value or "")
-    if not text:
-        return "확인 필요"
-    if kind == "name":
-        if len(text) == 2:
-            return f"{text[0]}*"
-        if len(text) > 2:
-            return f"{text[0]}*{text[-1]}"
-    if kind == "vehicle" and len(text) > 3:
-        return f"{text[:3]}****"
-    return text
+    return mask_display_value(value, kind=kind)
 
 
 def _render_uploaded_document_analysis(diagnosis_result: dict[str, Any]) -> None:
@@ -782,10 +764,7 @@ def _create_or_get_ticket(
 
 
 def _mask_customer_id(value: Any) -> str:
-    text = str(value or "")
-    if len(text) <= 4:
-        return text
-    return f"{text[:4]}***{text[-2:]}"
+    return mask_customer_id(value)
 
 
 def _render_distribution(title: str, data: dict[str, Any]) -> None:

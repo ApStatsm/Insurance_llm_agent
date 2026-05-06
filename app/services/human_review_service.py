@@ -2,13 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-
-PRIORITY_LABELS = {
-    "low": "낮음",
-    "medium": "보통",
-    "high": "높음",
-    "urgent": "긴급",
-}
+from app.core.labels import PRIORITY_LABELS, priority_max
 
 
 def _to_text(value: Any) -> str:
@@ -77,35 +71,35 @@ def assess_human_review_need(
         reasons.append("민원 또는 상담원 연결 의도가 포함되어 있습니다.")
     if route == "precedent_dispute":
         human_review_required = True
-        priority = max(priority, "high", key=["low", "medium", "high", "urgent"].index)
+        priority = priority_max(priority, "high")
         reasons.append("분쟁/유사사례 확인 요청으로 상담원 검토가 필요합니다.")
 
     coverage_status = _to_text(assessment.get("status"))
     if coverage_status in ("not_enough_evidence", "possibly_excluded"):
         human_review_required = True
-        priority = max(priority, "high", key=["low", "medium", "high", "urgent"].index)
+        priority = priority_max(priority, "high")
         reasons.append("AI 사전진단 결과 추가 근거 또는 면책 가능성 확인이 필요합니다.")
 
     if not result.get("evidence_cards") and route in ("policy_diagnosis", "precedent_dispute"):
         human_review_required = True
-        priority = max(priority, "medium", key=["low", "medium", "high", "urgent"].index)
+        priority = priority_max(priority, "medium")
         reasons.append("약관 근거가 충분히 확인되지 않았습니다.")
 
     missing_docs = checklist.get("missing_docs") or []
     readiness = checklist.get("readiness_percent")
     if missing_docs:
         human_review_required = True
-        priority = max(priority, "medium", key=["low", "medium", "high", "urgent"].index)
+        priority = priority_max(priority, "medium")
         reasons.append(f"누락 서류가 있습니다: {', '.join(_to_text(doc) for doc in missing_docs[:3])}")
     if readiness is not None and int(readiness or 0) < 80:
         human_review_required = True
-        priority = max(priority, "medium", key=["low", "medium", "high", "urgent"].index)
+        priority = priority_max(priority, "medium")
         reasons.append("청구 서류 준비율이 80% 미만입니다.")
 
     mismatches = uploaded.get("mismatches") or []
     if mismatches:
         human_review_required = True
-        priority = max(priority, "high", key=["low", "medium", "high", "urgent"].index)
+        priority = priority_max(priority, "high")
         reasons.append("고객 정보와 제출 서류 정보의 불일치 가능성이 있습니다.")
 
     missing_fields = [
@@ -113,7 +107,7 @@ def assess_human_review_need(
     ]
     if missing_fields:
         human_review_required = True
-        priority = max(priority, "medium", key=["low", "medium", "high", "urgent"].index)
+        priority = priority_max(priority, "medium")
         reasons.append("제출 서류에서 핵심 필드 일부가 확인되지 않았습니다.")
 
     needs_review_docs = comparison.get("needs_review_docs") or checklist.get("needs_review_docs") or []
@@ -122,7 +116,7 @@ def assess_human_review_need(
     ]
     if needs_review_docs or low_conf_docs:
         human_review_required = True
-        priority = max(priority, "medium", key=["low", "medium", "high", "urgent"].index)
+        priority = priority_max(priority, "medium")
         reasons.append("문서 유형 또는 추출 정보 확인이 필요한 서류가 있습니다.")
 
     if "차량" in incident_type or "침수" in incident_type:

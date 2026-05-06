@@ -2,23 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-
-ROUTE_LABELS = {
-    "policy_diagnosis": "보상 가능성 문의",
-    "document_claim": "청구 서류 점검",
-    "precedent_dispute": "분쟁/사례 확인",
-    "cs_complaint": "민원/상담 연결",
-}
-
-STATUS_LABELS = {
-    "created": "접수 생성",
-    "ai_reviewed": "AI 사전진단 완료",
-    "waiting_for_documents": "추가 서류 대기",
-    "needs_human_review": "상담원 확인 필요",
-    "ready_for_submission": "기본 청구 준비 완료",
-    "transferred_to_agent": "상담원 전달 완료",
-    "closed": "종료",
-}
+from app.core.labels import ROUTE_LABELS, STATUS_LABELS
 
 
 def _to_text(value: Any) -> str:

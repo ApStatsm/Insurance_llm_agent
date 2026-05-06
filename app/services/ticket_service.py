@@ -5,27 +5,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from app.core.labels import ROUTE_LABELS, ROUTE_TICKET_PREFIXES, STATUS_LABELS
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TICKET_DIR = PROJECT_ROOT / "data" / "tickets"
 TICKET_INDEX = TICKET_DIR / "tickets.jsonl"
-
-ROUTE_PREFIX = {
-    "policy_diagnosis": "CLM",
-    "document_claim": "DOC",
-    "precedent_dispute": "DSP",
-    "cs_complaint": "CSQ",
-}
-
-STATUS_LABELS = {
-    "created": "접수 생성",
-    "ai_reviewed": "AI 사전진단 완료",
-    "waiting_for_documents": "추가 서류 대기",
-    "needs_human_review": "상담원 확인 필요",
-    "ready_for_submission": "기본 청구 준비 완료",
-    "transferred_to_agent": "상담원 전달 완료",
-    "closed": "종료",
-}
 
 
 def _to_text(value: Any) -> str:
@@ -59,7 +43,7 @@ def load_ticket_index() -> list[dict[str, Any]]:
 def generate_ticket_id(route: str, created_at: datetime | None = None) -> str:
     ensure_ticket_dir()
     now = created_at or datetime.now()
-    prefix = ROUTE_PREFIX.get(route, "GEN")
+    prefix = ROUTE_TICKET_PREFIXES.get(route, "GEN")
     date_key = now.strftime("%Y%m%d")
     max_seq = 0
     for ticket in load_ticket_index():
@@ -149,12 +133,7 @@ def build_ticket_record(
     readiness = checklist.get("readiness_percent")
     status = determine_ticket_status(route, result, bool(review.get("human_review_required")), readiness)
     detail_path = TICKET_DIR / f"{ticket_id}.json"
-    route_label = {
-        "policy_diagnosis": "보상 가능성 문의",
-        "document_claim": "청구 서류 점검",
-        "precedent_dispute": "분쟁/사례 확인",
-        "cs_complaint": "민원/상담 연결",
-    }.get(route, "기타")
+    route_label = ROUTE_LABELS.get(route, "기타")
     ticket_record = {
         "ticket_id": ticket_id,
         "created_at": now.isoformat(timespec="seconds"),
