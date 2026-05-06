@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime, timezone
+import re
 from typing import Any
 
 from app.pipeline.diagnosis_report import LEGAL_DISCLAIMER
@@ -21,8 +22,19 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def _has_citation(content: str) -> bool:
-    return "[출처:" in content or "[근거:" in content
+def _has_supporting_evidence(content: str, draft: dict[str, Any]) -> bool:
+    if "[출처:" in content or "[근거:" in content:
+        return True
+    if draft.get("citations"):
+        return True
+    diagnosis_result = draft.get("diagnosis_result") or {}
+    if diagnosis_result.get("evidence_cards"):
+        return True
+    multi = diagnosis_result.get("multi_policy_analysis") or {}
+    for result in multi.get("policy_results") or []:
+        if result.get("evidence_cards"):
+            return True
+    return False
 
 
 def _contains_assertive_phrase(content: str) -> bool:
@@ -41,6 +53,13 @@ def _sanitize_assertive(content: str) -> str:
     for src, dst in replacements.items():
         text = text.replace(src, dst)
     return text
+
+
+def _strip_inline_citation_markers(content: str) -> str:
+    text = re.sub(r"\s*\[(?:출처|근거):[^\]]+\]", "", content)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
 
 
 def _sanitize_nested_text(value: Any) -> Any:
@@ -64,7 +83,7 @@ def manager_review(state: dict[str, Any]) -> dict[str, Any]:
 
     if _contains_assertive_phrase(content):
         reasons.append("확언 금지 룰 위반")
-    if not _has_citation(content):
+    if not _has_supporting_evidence(content, draft):
         reasons.append("출처 표기 누락")
 
     if reasons:
@@ -91,7 +110,7 @@ def manager_review(state: dict[str, Any]) -> dict[str, Any]:
         )
         return updated
 
-    safe_content = _sanitize_assertive(content)
+    safe_content = _strip_inline_citation_markers(_sanitize_assertive(content))
     diagnosis_result = _sanitize_nested_text(draft.get("diagnosis_result") or {})
     if isinstance(diagnosis_result, dict):
         diagnosis_result["disclaimer"] = LEGAL_DISCLAIMER

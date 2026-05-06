@@ -435,7 +435,7 @@ def build_multi_policy_answer(multi_policy_analysis: dict[str, Any]) -> str:
                 f"{idx}. {result.get('section_title', '가입상품 기준 검토')}",
                 f"- 검토 대상: {policy.get('product_name', '확인 필요')}",
                 f"- 판단 요약: {assessment.get('summary', '현재 정보 기준으로 추가 확인이 필요합니다.')}",
-                f"- 주요 근거: {evidence_label} [근거: {evidence_label}]",
+                f"- 주요 근거: {evidence_label}",
                 f"- 필요 서류: {', '.join(required_docs[:5]) if required_docs else '상품 기준 필요 서류 확인 필요'}",
                 f"- 추가 확인사항: {', '.join(missing_info[:4]) if missing_info else '담보 가입 여부와 제출 서류 확인 필요'}",
                 "",
@@ -449,4 +449,3 @@ def build_multi_policy_answer(multi_policy_analysis: dict[str, Any]) -> str:
         lines.append("")
     lines.append("실제 지급 여부와 금액은 약관, 제출 서류, 보험사 심사 결과에 따라 달라질 수 있습니다.")
     return "\n".join(lines)
-

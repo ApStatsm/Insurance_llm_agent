@@ -76,12 +76,6 @@ def _guardrail_content(content: str, citations: list[dict[str, Any]]) -> str:
     for src, dst in replacements.items():
         text = text.replace(src, dst)
 
-    if "[출처:" not in text and "[근거:" not in text and citations:
-        first = citations[0]
-        marker = _to_text(first.get("cite_tag")) or "출처"
-        source_id = first.get("source_id", "DOC1")
-        label = first.get("reference") or first.get("clause") or first.get("case_id") or "근거"
-        text = f"{text}\n\n[{marker}: {source_id}|{label}]"
     return text
 
 
@@ -378,7 +372,7 @@ def _run_policy_diagnosis_worker(
 1) 먼저 안내드리면: 한 줄 요약
 2) 어떤 조건을 봐야 하나요?: 2~4줄
 3) 추가로 확인하면 좋은 점: 1~2줄(없으면 생략 가능)
-문장 끝에는 가능한 범위에서 [근거: 제n조 제m항(조항명)] 형식으로 붙이세요.
+문장 끝에 [근거: ...] 또는 [출처: ...] 같은 꼬리표를 반복해서 붙이지 마세요.
 DOC번호/항목/대분류 같은 내부 표시는 답변에 직접 노출하지 마세요.
 <context>
 {context}
@@ -891,4 +885,3 @@ def _run_cs_complaint_worker(state: dict[str, Any]) -> dict[str, Any]:
         )
     )
     return updated
-
