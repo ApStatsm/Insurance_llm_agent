@@ -474,45 +474,46 @@ if chat_value:
                     if ticket_error:
                         st.info("접수 요약을 저장하는 중 문제가 발생했습니다. AI 진단 결과는 정상적으로 확인할 수 있습니다.")
 
-                with st.expander("확인 과정 보기"):
-                    st.markdown(f"- 처리 상태: `{pipeline_state.get('status')}`")
-                    st.markdown(f"- 확인한 업무 구분: `{pipeline_state.get('next_route')}`")
-                    st.markdown(f"- 다시 확인한 횟수: `{pipeline_state.get('retry_count')}`")
-                    st.markdown(f"- 가입 정보: `{pipeline_state.get('customer_db_info')}`")
-                    if upload_errors:
-                        st.markdown("**파일 처리 오류**")
-                        st.code("\n".join(upload_errors))
-                    if pipeline_state.get("error"):
-                        friendly = to_user_friendly_error(pipeline_state.get("error"))
-                        st.markdown(f"**오류 유형**: `{friendly['error_type']}`")
-                        st.markdown(f"**오류 코드**: `{friendly['error_code']}`")
-                        st.code(friendly.get("detail", "") or str(pipeline_state.get("error")))
-                    if pipeline_state.get("draft_response"):
-                        st.markdown("**답변 작성 내용**")
-                        st.markdown(strip_source_markers(pipeline_state["draft_response"].get("content", "")))
-                        if pipeline_state["draft_response"].get("diagnosis_result"):
-                            st.markdown("**진단 리포트 원본**")
-                            st.json(_clean_debug_value(pipeline_state["draft_response"].get("diagnosis_result")))
-                        if pipeline_state["draft_response"].get("debug"):
-                            st.markdown("**RAG 디버그 정보**")
-                            st.json(_clean_debug_value(pipeline_state["draft_response"].get("debug")))
-                    if pipeline_state.get("final_response", {}).get("diagnosis_result"):
-                        st.markdown("**최종 진단 리포트 원본**")
-                        st.json(_clean_debug_value(pipeline_state["final_response"].get("diagnosis_result")))
-                    if pipeline_state.get("review_notes"):
-                        st.markdown(f"**추가 확인 메모**: `{pipeline_state['review_notes']}`")
-                    if pipeline_state.get("audit_log"):
-                        st.markdown("**처리 로그**")
-                        st.json(pipeline_state.get("audit_log"))
-                    if ticket_summary:
-                        st.markdown("**가상 접수 요약**")
-                        st.json(_clean_debug_value(ticket_summary))
-                    if agent_handoff_summary:
-                        st.markdown("**상담원 전달 요약 원본**")
-                        st.json(_clean_debug_value(agent_handoff_summary))
-                    if ticket_error:
-                        st.markdown("**접수 저장 오류**")
-                        st.code(ticket_error)
+                if st.session_state.get("show_customer_debug"):
+                    with st.expander("확인 과정 보기"):
+                        st.markdown(f"- 처리 상태: `{pipeline_state.get('status')}`")
+                        st.markdown(f"- 확인한 업무 구분: `{pipeline_state.get('next_route')}`")
+                        st.markdown(f"- 다시 확인한 횟수: `{pipeline_state.get('retry_count')}`")
+                        st.markdown(f"- 가입 정보: `{pipeline_state.get('customer_db_info')}`")
+                        if upload_errors:
+                            st.markdown("**파일 처리 오류**")
+                            st.code("\n".join(upload_errors))
+                        if pipeline_state.get("error"):
+                            friendly = to_user_friendly_error(pipeline_state.get("error"))
+                            st.markdown(f"**오류 유형**: `{friendly['error_type']}`")
+                            st.markdown(f"**오류 코드**: `{friendly['error_code']}`")
+                            st.code(friendly.get("detail", "") or str(pipeline_state.get("error")))
+                        if pipeline_state.get("draft_response"):
+                            st.markdown("**답변 작성 내용**")
+                            st.markdown(strip_source_markers(pipeline_state["draft_response"].get("content", "")))
+                            if pipeline_state["draft_response"].get("diagnosis_result"):
+                                st.markdown("**진단 리포트 원본**")
+                                st.json(_clean_debug_value(pipeline_state["draft_response"].get("diagnosis_result")))
+                            if pipeline_state["draft_response"].get("debug"):
+                                st.markdown("**RAG 디버그 정보**")
+                                st.json(_clean_debug_value(pipeline_state["draft_response"].get("debug")))
+                        if pipeline_state.get("final_response", {}).get("diagnosis_result"):
+                            st.markdown("**최종 진단 리포트 원본**")
+                            st.json(_clean_debug_value(pipeline_state["final_response"].get("diagnosis_result")))
+                        if pipeline_state.get("review_notes"):
+                            st.markdown(f"**추가 확인 메모**: `{pipeline_state['review_notes']}`")
+                        if pipeline_state.get("audit_log"):
+                            st.markdown("**처리 로그**")
+                            st.json(pipeline_state.get("audit_log"))
+                        if ticket_summary:
+                            st.markdown("**가상 접수 요약**")
+                            st.json(_clean_debug_value(ticket_summary))
+                        if agent_handoff_summary:
+                            st.markdown("**상담원 전달 요약 원본**")
+                            st.json(_clean_debug_value(agent_handoff_summary))
+                        if ticket_error:
+                            st.markdown("**접수 저장 오류**")
+                            st.code(ticket_error)
 
     assistant_message = {"role": "assistant", "content": answer}
     if diagnosis_result:
