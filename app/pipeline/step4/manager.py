@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime, timezone
-import re
 from typing import Any
 
+from app.core.formatting import strip_source_markers
 from app.pipeline.diagnosis_report import LEGAL_DISCLAIMER
 from app.pipeline.step0.validator import build_audit_event, validate_node_entry, validate_node_update
 
@@ -55,13 +55,6 @@ def _sanitize_assertive(content: str) -> str:
     return text
 
 
-def _strip_inline_citation_markers(content: str) -> str:
-    text = re.sub(r"\s*\[(?:출처|근거):[^\]]+\]", "", content)
-    text = re.sub(r"[ \t]+\n", "\n", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()
-
-
 def _sanitize_nested_text(value: Any) -> Any:
     if isinstance(value, str):
         return _sanitize_assertive(value)
@@ -110,7 +103,7 @@ def manager_review(state: dict[str, Any]) -> dict[str, Any]:
         )
         return updated
 
-    safe_content = _strip_inline_citation_markers(_sanitize_assertive(content))
+    safe_content = strip_source_markers(_sanitize_assertive(content))
     diagnosis_result = _sanitize_nested_text(draft.get("diagnosis_result") or {})
     if isinstance(diagnosis_result, dict):
         diagnosis_result["disclaimer"] = LEGAL_DISCLAIMER

@@ -155,15 +155,13 @@ def _rewrite_policy_citations(content: str, citations: list[dict[str, Any]]) -> 
     pattern = re.compile(r"\[(?:출처|근거):\s*(DOC\d+)\|[^\]]*\]")
 
     def _repl(match: re.Match[str]) -> str:
-        doc_id = match.group(1)
-        ref = doc_ref_map.get(doc_id, "약관 해당 조항")
-        return f"[근거: {ref}]"
+        return ""
 
     rewritten = pattern.sub(_repl, content)
     # 모델이 [출처: DOC1] 형태로만 낸 경우도 커버
     rewritten = re.sub(
         r"\[(?:출처|근거):\s*(DOC\d+)\]",
-        lambda m: f"[근거: {doc_ref_map.get(m.group(1), '약관 해당 조항')}]",
+        "",
         rewritten,
     )
     return rewritten
@@ -324,7 +322,7 @@ def _run_policy_diagnosis_worker(
                 (
                     "관련 약관을 찾지 못했습니다. 사고 상황을 조금 더 구체적으로 입력해 주세요. "
                     "예를 들어 사고 원인, 발생 장소, 치료명, 손해 항목을 함께 적어주시면 다시 확인해보겠습니다. "
-                    "[근거: POLICY_SEARCH|검색결과없음]"
+                    ""
                 ),
                 doc_analysis_summary,
             ),
@@ -532,7 +530,7 @@ def _build_uploaded_document_analysis(
     summary = (
         f"업로드 서류 {len(docs)}건 중 {extracted_count}건을 자동 분석했고, "
         f"추가 필요 서류 {missing_count}개와 확인 필요 항목 {review_count}개를 점검했습니다. "
-        "[출처: CLAIM_RULESET|문서분석]"
+        ""
     )
     return uploaded_documents, checklist, summary
 
@@ -634,7 +632,7 @@ def _run_precedent_dispute_worker(state: dict[str, Any], *, llm: Any) -> dict[st
 2) 다르게 확인될 수 있는 점
 3) 고객님이 유의하실 점
 
-각 단락 끝에 [출처: CASE번호|사건번호]를 붙이세요.
+문장 끝에 [출처: ...] 같은 꼬리표를 붙이지 마세요.
 <context>
 {context}
 </context>
@@ -759,13 +757,13 @@ def _run_document_claim_worker(
         status_text = "추가 서류 확인 필요"
         body = (
             "올려주신 서류를 먼저 확인해보니, 접수를 진행하려면 아래 서류를 더 준비해주시면 좋겠습니다.\n\n"
-            f"필요한 서류: {', '.join(checklist_missing)} [출처: CLAIM_RULESET|필수서류규칙]"
+            f"필요한 서류: {', '.join(checklist_missing)}"
         )
     else:
         status_text = "기본 서류 확인됨"
         body = (
             "올려주신 서류 기준으로는 기본 서류가 갖춰진 것으로 확인됩니다. "
-            "이제 담당자가 세부 내용을 확인하는 단계로 이어질 수 있습니다. [출처: CLAIM_RULESET|서류정합성규칙]"
+            "이제 담당자가 세부 내용을 확인하는 단계로 이어질 수 있습니다."
         )
 
     payload = {
@@ -849,7 +847,7 @@ def _run_cs_complaint_worker(state: dict[str, Any]) -> dict[str, Any]:
         "불편을 겪으신 점 먼저 죄송합니다. 말씀해주신 내용은 상담원이 이어서 확인할 수 있도록 접수해두었습니다. "
         f"상담원 연결 접수 번호는 `{queue_ticket_id}`입니다. "
         "연결 전까지 확인된 내용과 준비하시면 좋은 서류를 함께 정리해드리겠습니다. "
-        "[출처: CS_PLAYBOOK|민원응대기준]"
+        ""
     )
     content = _append_document_analysis_summary(content, doc_analysis_summary)
     draft = {

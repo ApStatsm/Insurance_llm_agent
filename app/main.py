@@ -20,6 +20,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 
 try:
+    from app.core.formatting import strip_source_markers
     from app.pipeline import run_multi_agent_pipeline
     from app.pipeline.errors import to_user_friendly_error
     from app.services.agent_handoff_service import build_agent_handoff_summary
@@ -33,6 +34,7 @@ try:
 except ModuleNotFoundError:
     # Allow `streamlit run main.py` from inside `app/` directory.
     sys.path.append(str(Path(__file__).resolve().parent.parent))
+    from app.core.formatting import strip_source_markers
     from app.pipeline import run_multi_agent_pipeline
     from app.pipeline.errors import to_user_friendly_error
     from app.services.agent_handoff_service import build_agent_handoff_summary
@@ -263,6 +265,16 @@ def _should_show_ticket_summary(
     )
 
 
+def _clean_debug_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return strip_source_markers(value)
+    if isinstance(value, list):
+        return [_clean_debug_value(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _clean_debug_value(item) for key, item in value.items()}
+    return value
+
+
 if not st.session_state.get("authenticated"):
     render_login_screen()
     st.stop()
@@ -442,6 +454,7 @@ if chat_value:
                 else:
                     answer = to_user_friendly_error(pipeline_state.get("error"))["content"]
 
+                answer = strip_source_markers(answer)
                 st.markdown(answer)
                 if diagnosis_result:
                     ticket_summary, agent_handoff_summary, ticket_error = _create_or_get_ticket(
@@ -478,29 +491,27 @@ if chat_value:
                         st.code(friendly.get("detail", "") or str(pipeline_state.get("error")))
                     if pipeline_state.get("draft_response"):
                         st.markdown("**답변 작성 내용**")
-                        st.markdown(pipeline_state["draft_response"].get("content", ""))
+                        st.markdown(strip_source_markers(pipeline_state["draft_response"].get("content", "")))
                         if pipeline_state["draft_response"].get("diagnosis_result"):
                             st.markdown("**진단 리포트 원본**")
-                            st.json(pipeline_state["draft_response"].get("diagnosis_result"))
+                            st.json(_clean_debug_value(pipeline_state["draft_response"].get("diagnosis_result")))
                         if pipeline_state["draft_response"].get("debug"):
                             st.markdown("**RAG 디버그 정보**")
-                            st.json(pipeline_state["draft_response"].get("debug"))
+                            st.json(_clean_debug_value(pipeline_state["draft_response"].get("debug")))
                     if pipeline_state.get("final_response", {}).get("diagnosis_result"):
                         st.markdown("**최종 진단 리포트 원본**")
-                        st.json(pipeline_state["final_response"].get("diagnosis_result"))
+                        st.json(_clean_debug_value(pipeline_state["final_response"].get("diagnosis_result")))
                     if pipeline_state.get("review_notes"):
                         st.markdown(f"**추가 확인 메모**: `{pipeline_state['review_notes']}`")
-                    if pipeline_state.get("citations"):
-                        st.markdown(f"**확인한 근거**: `{pipeline_state['citations']}`")
                     if pipeline_state.get("audit_log"):
                         st.markdown("**처리 로그**")
                         st.json(pipeline_state.get("audit_log"))
                     if ticket_summary:
                         st.markdown("**가상 접수 요약**")
-                        st.json(ticket_summary)
+                        st.json(_clean_debug_value(ticket_summary))
                     if agent_handoff_summary:
                         st.markdown("**상담원 전달 요약 원본**")
-                        st.json(agent_handoff_summary)
+                        st.json(_clean_debug_value(agent_handoff_summary))
                     if ticket_error:
                         st.markdown("**접수 저장 오류**")
                         st.code(ticket_error)

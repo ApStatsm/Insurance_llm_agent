@@ -5,7 +5,11 @@ from typing import Any
 
 import streamlit as st
 
-from app.core.formatting import as_list, format_file_size, mask_display_value
+from app.core.formatting import as_list, format_file_size, mask_display_value, strip_source_markers
+
+
+def _clean_text(value: Any) -> str:
+    return strip_source_markers(value)
 
 def _format_file_size(size_bytes: int | None) -> str:
     return format_file_size(size_bytes)
@@ -33,7 +37,7 @@ def _as_list(value: Any) -> list[Any]:
 
 
 def _render_bullets(items: list[Any], empty_text: str = "없음") -> None:
-    values = [str(item) for item in items if str(item)]
+    values = [_clean_text(item) for item in items if _clean_text(item)]
     if not values:
         st.markdown(f"- {empty_text}")
         return
@@ -84,7 +88,7 @@ def _render_requested_report_parts(
     if "assessment" in sections:
         st.markdown("**보상 가능성 진단**")
         st.markdown(f"- 상태: {assessment.get('label', '추가 확인 필요')}")
-        st.markdown(f"- 요약: {assessment.get('summary', '현재 정보 기준으로 추가 확인이 필요합니다.')}")
+        st.markdown(f"- 요약: {_clean_text(assessment.get('summary', '현재 정보 기준으로 추가 확인이 필요합니다.'))}")
         if assessment.get("missing_info"):
             st.markdown("- 추가 확인:")
             _render_bullets(_as_list(assessment.get("missing_info")), "현재 단계에서 별도 표시된 항목 없음")
@@ -119,11 +123,11 @@ def _render_requested_report_parts(
                     st.markdown(f"- 조항: {card.get('article_number', '확인 필요')}")
                     st.markdown(f"- 구분: {card.get('clause_type', '약관 원문 기준')}")
                     st.markdown("**약관 원문**")
-                    st.markdown(card.get("source_text", "확인 필요"))
+                    st.markdown(_clean_text(card.get("source_text", "확인 필요")))
                     st.markdown("**AI 해석**")
-                    st.markdown(card.get("ai_interpretation", "확인 필요"))
+                    st.markdown(_clean_text(card.get("ai_interpretation", "확인 필요")))
                     st.markdown("**고객 상황 적용**")
-                    st.markdown(card.get("application_to_customer", "확인 필요"))
+                    st.markdown(_clean_text(card.get("application_to_customer", "확인 필요")))
         else:
             st.info("현재 표시할 약관 근거가 없습니다. 사고 상황을 더 구체적으로 입력하면 근거를 다시 찾을 수 있습니다.")
 
@@ -205,23 +209,23 @@ def _render_uploaded_document_analysis(diagnosis_result: dict[str, Any]) -> None
                 if fields.get("vehicle_number"):
                     st.markdown(f"- 차량번호: {_mask_display_value(fields.get('vehicle_number'), kind='vehicle')}")
                 if result.get("raw_text_summary"):
-                    st.caption(str(result.get("raw_text_summary"))[:240])
+                    st.caption(_clean_text(result.get("raw_text_summary"))[:240])
                 for warning in _as_list(result.get("warnings")):
-                    st.warning(str(warning))
+                    st.warning(_clean_text(warning))
 
     needs_review_docs = _as_list(comparison.get("needs_review_docs"))
     missing_fields = [item for item in missing_key_fields if item.get("status") == "missing"]
     if needs_review_docs or missing_fields:
         st.markdown("**확인 필요 정보**")
         for item in needs_review_docs:
-            st.warning(f"{item.get('file_name', '첨부파일')}: {item.get('reason', '확인이 필요합니다.')}")
+            st.warning(_clean_text(f"{item.get('file_name', '첨부파일')}: {item.get('reason', '확인이 필요합니다.')}"))
         for item in missing_fields:
-            st.warning(item.get("message", "핵심 필드 확인이 필요합니다."))
+            st.warning(_clean_text(item.get("message", "핵심 필드 확인이 필요합니다.")))
 
     if mismatches:
         st.markdown("**고객 정보와 불일치 가능성**")
         for item in mismatches:
-            st.warning(item.get("message", "고객 정보와 서류 정보 확인이 필요합니다."))
+            st.warning(_clean_text(item.get("message", "고객 정보와 서류 정보 확인이 필요합니다.")))
 
     readiness = int(comparison.get("readiness_percent") or diagnosis_result.get("claim_checklist", {}).get("readiness_percent") or 0)
     readiness = max(0, min(readiness, 100))
@@ -258,7 +262,7 @@ def _render_multi_policy_analysis(diagnosis_result: dict[str, Any]) -> None:
         with st.expander(title):
             st.markdown(f"- 적용 상품: {policy.get('product_name', '확인 필요')}")
             st.markdown(f"- 판단: {assessment.get('label', '추가 확인 필요')}")
-            st.markdown(f"- 요약: {assessment.get('summary', '현재 정보 기준으로 추가 확인이 필요합니다.')}")
+            st.markdown(f"- 요약: {_clean_text(assessment.get('summary', '현재 정보 기준으로 추가 확인이 필요합니다.'))}")
             st.markdown("**필요서류**")
             _render_bullets(_as_list(checklist.get("required_docs") or checklist.get("missing_docs")), "확인 필요")
             st.markdown("**청구 서류 준비율**")
@@ -271,7 +275,7 @@ def _render_multi_policy_analysis(diagnosis_result: dict[str, Any]) -> None:
                         f"- 근거 {idx}: {card.get('document_name', '약관 원문')} / "
                         f"{card.get('article_number') or card.get('article_title') or '조항 확인 필요'}"
                     )
-                    st.caption(str(card.get("source_text") or "")[:220])
+                    st.caption(_clean_text(card.get("source_text"))[:220])
             else:
                 st.info("해당 상품 기준 근거를 충분히 찾지 못했습니다.")
             if result.get("cautions"):
@@ -311,7 +315,7 @@ def _render_agent_handoff(handoff: dict[str, Any]) -> None:
     if not handoff:
         st.info("상담원 전달 요약이 아직 생성되지 않았습니다.")
         return
-    st.caption(handoff.get("notice", "본 요약은 AI 사전진단 결과를 상담원이 이어서 확인할 수 있도록 정리한 참고 자료입니다."))
+    st.caption(_clean_text(handoff.get("notice", "본 요약은 AI 사전진단 결과를 상담원이 이어서 확인할 수 있도록 정리한 참고 자료입니다.")))
     info = handoff.get("ticket_info") or {}
     customer = handoff.get("customer_summary") or {}
     inquiry = handoff.get("inquiry_summary") or {}
@@ -321,9 +325,9 @@ def _render_agent_handoff(handoff: dict[str, Any]) -> None:
     st.markdown(f"- 접수번호: `{info.get('ticket_id', '')}`")
     st.markdown(f"- 경로/상태/우선도: {info.get('route_label', '')} · {info.get('status_label', '')} · {info.get('priority_label', '')}")
     st.markdown(f"- 고객/상품: `{customer.get('customer_id', '')}` · {customer.get('product_name', '확인 필요')}")
-    st.markdown(f"- 문의: {inquiry.get('original_question', '')}")
+    st.markdown(f"- 문의: {_clean_text(inquiry.get('original_question', ''))}")
     st.markdown(f"- 사고유형/단계: {inquiry.get('incident_type', '')} · {inquiry.get('current_stage', '')}")
-    st.markdown(f"- AI 판단: {ai.get('coverage_label', '추가 확인 필요')} · {ai.get('assessment_summary', '')}")
+    st.markdown(f"- AI 판단: {ai.get('coverage_label', '추가 확인 필요')} · {_clean_text(ai.get('assessment_summary', ''))}")
     st.markdown(f"- 제출 서류: {', '.join(docs.get('submitted_docs') or []) or '없음'}")
     st.markdown(f"- 누락 서류: {', '.join(docs.get('missing_docs') or []) or '없음'}")
     st.markdown(f"- 청구 서류 준비율: {docs.get('readiness_percent', 0)}%")
@@ -360,7 +364,7 @@ def render_chat_message(message: dict[str, Any], *, assistant_avatar: str | Path
     with message_col:
         with st.chat_message(role, avatar=avatar):
             if message.get("content"):
-                st.markdown(message["content"])
+                st.markdown(_clean_text(message["content"]))
             if role == "assistant" and message.get("diagnosis_result"):
                 _render_multi_policy_analysis(message["diagnosis_result"])
                 _render_uploaded_document_analysis(message["diagnosis_result"])

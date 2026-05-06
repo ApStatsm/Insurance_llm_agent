@@ -5,12 +5,23 @@ from typing import Any
 
 import streamlit as st
 
-from app.core.formatting import as_list as _as_list, mask_customer_id
+from app.core.formatting import as_list as _as_list, mask_customer_id, strip_source_markers
 from app.services.dashboard_service import compute_dashboard_metrics, human_review_queue
 from app.services.ticket_service import create_mock_tickets_if_empty, load_ticket_detail, load_ticket_index
 from app.ui.chat_views import render_agent_handoff, _render_bullets
 
 logger = logging.getLogger(__name__)
+
+
+def _clean_debug_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return strip_source_markers(value)
+    if isinstance(value, list):
+        return [_clean_debug_value(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _clean_debug_value(item) for key, item in value.items()}
+    return value
+
 
 def _mask_customer_id(value: Any) -> str:
     return mask_customer_id(value)
@@ -50,7 +61,7 @@ def _render_ticket_detail(ticket_id: str, index_fallback: dict[str, Any] | None 
     if handoff:
         render_agent_handoff(handoff)
     with st.expander("개발자용 raw ticket JSON"):
-        st.json(detail)
+        st.json(_clean_debug_value(detail))
 
 
 def _render_admin_dashboard() -> None:
