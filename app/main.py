@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import logging
 import uuid
+from datetime import datetime
 from typing import Any
 import sys
 
@@ -55,6 +56,7 @@ from app.ui.chat_views import (
     requested_report_sections,
 )
 from app.ui.dashboard_view import render_admin_dashboard
+from app.ui.debug_view import render_admin_debug_mode
 from app.ui.styles import render_app_shell
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -141,6 +143,9 @@ if "upload_session_ids" not in st.session_state:
 
 if "ticket_keys" not in st.session_state:
     st.session_state.ticket_keys = {}
+
+if "debug_runs" not in st.session_state:
+    st.session_state.debug_runs = []
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -269,9 +274,45 @@ def _clean_debug_value(value: Any) -> Any:
         return strip_source_markers(value)
     if isinstance(value, list):
         return [_clean_debug_value(item) for item in value]
+    if isinstance(value, (tuple, set)):
+        return [_clean_debug_value(item) for item in value]
     if isinstance(value, dict):
         return {key: _clean_debug_value(item) for key, item in value.items()}
-    return value
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    return str(value)
+
+
+def _record_debug_run(
+    *,
+    question: str,
+    pipeline_state: dict[str, Any],
+    answer: str,
+    diagnosis_result: dict[str, Any] | None,
+    ticket_summary: dict[str, Any] | None,
+    agent_handoff_summary: dict[str, Any] | None,
+    ticket_error: str | None,
+    upload_errors: list[str],
+) -> None:
+    debug_runs = list(st.session_state.get("debug_runs") or [])
+    debug_runs.append(
+        {
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+            "customer_id": pipeline_state.get("user_id") or st.session_state.get("active_customer_id"),
+            "question": question,
+            "status": pipeline_state.get("status"),
+            "route": pipeline_state.get("next_route"),
+            "retry_count": pipeline_state.get("retry_count"),
+            "answer": strip_source_markers(answer),
+            "upload_errors": upload_errors,
+            "ticket_error": ticket_error,
+            "pipeline_state": _clean_debug_value(pipeline_state),
+            "diagnosis_result": _clean_debug_value(diagnosis_result or {}),
+            "ticket_summary": _clean_debug_value(ticket_summary or {}),
+            "agent_handoff_summary": _clean_debug_value(agent_handoff_summary or {}),
+        }
+    )
+    st.session_state.debug_runs = debug_runs[-30:]
 
 
 if not st.session_state.get("authenticated"):
@@ -280,43 +321,51 @@ if not st.session_state.get("authenticated"):
 
 
 with st.sidebar:
-    mode = st.radio("화면 모드", ["고객 상담", "관리자 대시보드"], index=0)
+    mode = st.radio("화면 모드", ["고객 상담", "관리자 대시보드", "관리자 디버그 모드"], index=0)
     st.markdown("---")
     active_customer_id = render_logged_in_sidebar(_default_messages)
-    st.markdown("---")
-    st.markdown("### 대화 목록")
+    if mode == "고객 상담":
+        st.markdown("---")
+        st.markdown("### 대화 목록")
 
-    st.caption("서류는 채팅 입력창의 첨부 버튼으로 함께 보낼 수 있어요.")
+        st.caption("서류는 채팅 입력창의 첨부 버튼으로 함께 보낼 수 있어요.")
 
-    if st.button("새 대화", use_container_width=True):
-        _sync_current_session_messages()
-        new_id = str(uuid.uuid4())
-        next_num = len(st.session_state.chat_sessions) + 1
-        st.session_state.chat_sessions[new_id] = {
-            "title": f"새 대화 {next_num}",
-            "messages": _default_messages(),
-        }
-        st.session_state.current_chat_id = new_id
-        st.session_state.messages = _default_messages()
-        st.rerun()
-
-    current_id = st.session_state.current_chat_id
-    st.caption(f"현재 대화: {st.session_state.chat_sessions[current_id]['title']}")
-
-    for chat_id, chat in list(st.session_state.chat_sessions.items())[::-1]:
-        if chat_id == current_id:
-            continue
-        if st.button(chat["title"], key=f"chat_{chat_id}", use_container_width=True):
+        if st.button("새 대화", use_container_width=True):
             _sync_current_session_messages()
-            st.session_state.current_chat_id = chat_id
-            st.session_state.messages = st.session_state.chat_sessions[chat_id]["messages"].copy()
+            new_id = str(uuid.uuid4())
+            next_num = len(st.session_state.chat_sessions) + 1
+            st.session_state.chat_sessions[new_id] = {
+                "title": f"새 대화 {next_num}",
+                "messages": _default_messages(),
+            }
+            st.session_state.current_chat_id = new_id
+            st.session_state.messages = _default_messages()
             st.rerun()
+
+        current_id = st.session_state.current_chat_id
+        st.caption(f"현재 대화: {st.session_state.chat_sessions[current_id]['title']}")
+
+        for chat_id, chat in list(st.session_state.chat_sessions.items())[::-1]:
+            if chat_id == current_id:
+                continue
+            if st.button(chat["title"], key=f"chat_{chat_id}", use_container_width=True):
+                _sync_current_session_messages()
+                st.session_state.current_chat_id = chat_id
+                st.session_state.messages = st.session_state.chat_sessions[chat_id]["messages"].copy()
+                st.rerun()
+    else:
+        st.markdown("---")
+        st.caption("관리자 화면에서는 고객 대화 입력창을 표시하지 않습니다.")
 
     st.markdown("---")
     st.caption("삼성화재 안내 화면")
 
 if mode == "관리자 대시보드":
     render_admin_dashboard()
+    st.stop()
+
+if mode == "관리자 디버그 모드":
+    render_admin_debug_mode()
     st.stop()
 
 try:
@@ -474,46 +523,16 @@ if chat_value:
                     if ticket_error:
                         st.info("접수 요약을 저장하는 중 문제가 발생했습니다. AI 진단 결과는 정상적으로 확인할 수 있습니다.")
 
-                if st.session_state.get("show_customer_debug"):
-                    with st.expander("확인 과정 보기"):
-                        st.markdown(f"- 처리 상태: `{pipeline_state.get('status')}`")
-                        st.markdown(f"- 확인한 업무 구분: `{pipeline_state.get('next_route')}`")
-                        st.markdown(f"- 다시 확인한 횟수: `{pipeline_state.get('retry_count')}`")
-                        st.markdown(f"- 가입 정보: `{pipeline_state.get('customer_db_info')}`")
-                        if upload_errors:
-                            st.markdown("**파일 처리 오류**")
-                            st.code("\n".join(upload_errors))
-                        if pipeline_state.get("error"):
-                            friendly = to_user_friendly_error(pipeline_state.get("error"))
-                            st.markdown(f"**오류 유형**: `{friendly['error_type']}`")
-                            st.markdown(f"**오류 코드**: `{friendly['error_code']}`")
-                            st.code(friendly.get("detail", "") or str(pipeline_state.get("error")))
-                        if pipeline_state.get("draft_response"):
-                            st.markdown("**답변 작성 내용**")
-                            st.markdown(strip_source_markers(pipeline_state["draft_response"].get("content", "")))
-                            if pipeline_state["draft_response"].get("diagnosis_result"):
-                                st.markdown("**진단 리포트 원본**")
-                                st.json(_clean_debug_value(pipeline_state["draft_response"].get("diagnosis_result")))
-                            if pipeline_state["draft_response"].get("debug"):
-                                st.markdown("**RAG 디버그 정보**")
-                                st.json(_clean_debug_value(pipeline_state["draft_response"].get("debug")))
-                        if pipeline_state.get("final_response", {}).get("diagnosis_result"):
-                            st.markdown("**최종 진단 리포트 원본**")
-                            st.json(_clean_debug_value(pipeline_state["final_response"].get("diagnosis_result")))
-                        if pipeline_state.get("review_notes"):
-                            st.markdown(f"**추가 확인 메모**: `{pipeline_state['review_notes']}`")
-                        if pipeline_state.get("audit_log"):
-                            st.markdown("**처리 로그**")
-                            st.json(pipeline_state.get("audit_log"))
-                        if ticket_summary:
-                            st.markdown("**가상 접수 요약**")
-                            st.json(_clean_debug_value(ticket_summary))
-                        if agent_handoff_summary:
-                            st.markdown("**상담원 전달 요약 원본**")
-                            st.json(_clean_debug_value(agent_handoff_summary))
-                        if ticket_error:
-                            st.markdown("**접수 저장 오류**")
-                            st.code(ticket_error)
+    _record_debug_run(
+        question=question,
+        pipeline_state=pipeline_state,
+        answer=answer,
+        diagnosis_result=diagnosis_result,
+        ticket_summary=ticket_summary,
+        agent_handoff_summary=agent_handoff_summary,
+        ticket_error=ticket_error,
+        upload_errors=upload_errors,
+    )
 
     assistant_message = {"role": "assistant", "content": answer}
     if diagnosis_result:

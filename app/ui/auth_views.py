@@ -108,9 +108,7 @@ def render_logged_in_sidebar(default_messages_factory: Callable[[], list[dict[st
     with st.expander("개발자 모드: 고객 ID override"):
         use_override = st.checkbox("로그인 고객 대신 다른 고객 ID 사용", value=False)
         override_id = st.text_input("디버그용 고객 ID", value=customer_id or "CUST-1029").strip().upper()
-        show_debug = st.checkbox("고객 상담 화면에 디버그 정보 표시", value=False)
         st.caption("기존 고객 ID 직접 입력 방식은 개발/디버그용 fallback으로만 유지됩니다.")
-    st.session_state.show_customer_debug = show_debug
 
     active_id = override_id if use_override and override_id else customer_id
     if use_override and override_id:
