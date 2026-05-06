@@ -11,6 +11,9 @@ import sys
 # Transformers가 Keras 3/TensorFlow 경로를 타지 않도록 강제 (PyTorch 임베딩 사용)
 os.environ.setdefault("TRANSFORMERS_NO_TF", "1")
 os.environ.setdefault("USE_TF", "0")
+# Streamlit Cloud에서 Chroma/opentelemetry가 오래된 protobuf descriptor를 불러올 때
+# C++ protobuf 구현과 충돌하지 않도록 import 전에 pure-python 구현을 사용한다.
+os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
 
 import streamlit as st
 from langchain_chroma import Chroma

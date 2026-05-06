@@ -5,8 +5,7 @@ langchain-openai
 openai
 streamlit
 PyMuPDF
-protobuf>=4.25.3,<6
-opentelemetry-proto>=1.27.0
+protobuf==3.20.3
 
 # 🗄️ 2. Vector DB 및 임베딩 모델 (Chroma & BGE-m3)
 langchain-chroma==1.1.0

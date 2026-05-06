@@ -49,10 +49,15 @@ OPENAI_API_KEY = "sk-..."
    - 고객 ID: `CUST-0001` ~ `CUST-0050`
    - 비밀번호: `1234`
 
-주의: Chroma, protobuf, sentence-transformers 계열 의존성은 최신 Python 런타임에서 깨질 수 있습니다.
-Streamlit Community Cloud의 Advanced settings에서 Python을 `3.12`로 선택해 배포하세요.
+주의: Chroma, protobuf, sentence-transformers 계열 의존성은 최신 Python 런타임 또는
+protobuf 최신 버전에서 깨질 수 있습니다. Streamlit Community Cloud의 Advanced settings에서
+Python을 `3.12`로 선택해 배포하고, `requirements.txt`의 `protobuf==3.20.3` 핀을 유지하세요.
 이미 Python 3.14로 생성된 앱은 설정만 바꿔서는 런타임이 바뀌지 않을 수 있으므로,
 앱을 삭제한 뒤 같은 저장소/도메인으로 다시 배포하면서 Python 3.12를 선택하는 방식을 권장합니다.
+
+Chroma import 단계에서 `google/protobuf/descriptor.py` 오류가 나면 Cloud 빌드 캐시가 이전
+protobuf 버전을 잡고 있을 수 있습니다. 이때는 앱 설정에서 캐시를 지우고 재부팅하거나,
+앱을 삭제 후 다시 배포하세요.
 
 ## 로컬 실행
 
