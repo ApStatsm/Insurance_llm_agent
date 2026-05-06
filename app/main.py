@@ -614,6 +614,63 @@ def _render_uploaded_document_analysis(diagnosis_result: dict[str, Any]) -> None
     st.caption(f"{readiness}% · {comparison.get('readiness_label') or diagnosis_result.get('claim_checklist', {}).get('readiness_label', '청구 서류 준비 전')}")
 
 
+def _render_multi_policy_analysis(diagnosis_result: dict[str, Any]) -> None:
+    analysis = diagnosis_result.get("multi_policy_analysis") or {}
+    if not analysis.get("enabled"):
+        return
+    policy_results = _as_list(analysis.get("policy_results"))
+    if not policy_results:
+        return
+
+    st.markdown("---")
+    st.markdown("#### 복수 보험상품 검토 결과")
+    st.caption(analysis.get("reason", "여러 가입상품을 함께 검토했습니다."))
+
+    names = [str((item.get("policy") or {}).get("product_name") or "") for item in policy_results]
+    if names:
+        st.markdown("**검토 대상 상품**")
+        _render_bullets([name for name in names if name], "확인 필요")
+
+    for result in policy_results:
+        policy = result.get("policy") or {}
+        assessment = result.get("coverage_assessment") or {}
+        checklist = result.get("claim_checklist") or {}
+        evidence_cards = _as_list(result.get("evidence_cards"))
+        readiness = int(checklist.get("readiness_percent") or 0)
+        readiness = max(0, min(readiness, 100))
+        title = result.get("section_title") or policy.get("product_name") or "가입상품 기준 검토"
+        with st.expander(title):
+            st.markdown(f"- 적용 상품: {policy.get('product_name', '확인 필요')}")
+            st.markdown(f"- 판단: {assessment.get('label', '추가 확인 필요')}")
+            st.markdown(f"- 요약: {assessment.get('summary', '현재 정보 기준으로 추가 확인이 필요합니다.')}")
+            st.markdown("**필요서류**")
+            _render_bullets(_as_list(checklist.get("required_docs") or checklist.get("missing_docs")), "확인 필요")
+            st.markdown("**청구 서류 준비율**")
+            st.progress(readiness / 100)
+            st.caption(f"{readiness}% · {checklist.get('readiness_label', '청구 서류 준비 전')}")
+            if evidence_cards:
+                st.markdown("**약관 근거 카드**")
+                for idx, card in enumerate(evidence_cards[:3], start=1):
+                    st.markdown(
+                        f"- 근거 {idx}: {card.get('document_name', '약관 원문')} / "
+                        f"{card.get('article_number') or card.get('article_title') or '조항 확인 필요'}"
+                    )
+                    st.caption(str(card.get("source_text") or "")[:220])
+            else:
+                st.info("해당 상품 기준 근거를 충분히 찾지 못했습니다.")
+            if result.get("cautions"):
+                st.markdown("**주의사항**")
+                _render_bullets(_as_list(result.get("cautions")), "없음")
+            if result.get("next_actions"):
+                st.markdown("**다음 행동**")
+                _render_bullets(_as_list(result.get("next_actions")), "상담원 확인 요청")
+
+    cautions = (analysis.get("combined_summary") or {}).get("cross_policy_cautions") or []
+    if cautions:
+        st.markdown("**함께 확인할 점**")
+        _render_bullets(_as_list(cautions), "없음")
+
+
 def _render_ticket_summary(ticket: dict[str, Any] | None, handoff: dict[str, Any] | None = None) -> None:
     if not ticket:
         return
@@ -660,6 +717,17 @@ def _render_agent_handoff(handoff: dict[str, Any]) -> None:
     if review.get("recommended_questions"):
         st.markdown("**고객에게 확인할 질문**")
         _render_bullets(review.get("recommended_questions"), "없음")
+    multi = handoff.get("multi_policy_review") or {}
+    if multi.get("enabled"):
+        st.markdown("**복수 상품 검토 결과**")
+        for item in _as_list(multi.get("policy_summaries")):
+            st.markdown(
+                f"- {item.get('product_name', '확인 필요')}: "
+                f"{item.get('section_title', '상품 기준 검토')} / {item.get('coverage_label', '추가 확인 필요')}"
+            )
+        if multi.get("cross_policy_cautions"):
+            st.markdown("**상품 간 확인 필요사항**")
+            _render_bullets(_as_list(multi.get("cross_policy_cautions")), "없음")
     if handoff.get("recommended_next_steps"):
         st.markdown("**추천 후속 조치**")
         _render_bullets(handoff.get("recommended_next_steps"), "없음")
@@ -819,6 +887,7 @@ def _render_admin_dashboard() -> None:
             "생성일시": item.get("created_at"),
             "고객ID": _mask_customer_id(item.get("customer_id")),
             "상품": item.get("product_name"),
+            "관련상품": ", ".join(_as_list(item.get("involved_products"))) or item.get("product_name"),
             "문의유형": item.get("incident_type"),
             "route": item.get("route"),
             "상태": item.get("status_label"),
@@ -850,6 +919,7 @@ def _render_chat_message(message: dict[str, Any]) -> None:
             if message.get("content"):
                 st.markdown(message["content"])
             if role == "assistant" and message.get("diagnosis_result"):
+                _render_multi_policy_analysis(message["diagnosis_result"])
                 _render_uploaded_document_analysis(message["diagnosis_result"])
                 _render_requested_report_parts(
                     message["diagnosis_result"],
@@ -1175,6 +1245,7 @@ if chat_value:
                         diagnosis_result=diagnosis_result,
                         question=question,
                     )
+                    _render_multi_policy_analysis(diagnosis_result)
                     _render_uploaded_document_analysis(diagnosis_result)
                     _render_requested_report_parts(diagnosis_result, requested_report_sections)
                     _render_ticket_summary(ticket_summary, agent_handoff_summary)

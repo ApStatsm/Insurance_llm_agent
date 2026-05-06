@@ -102,6 +102,7 @@ def _index_record(ticket_record: dict[str, Any]) -> dict[str, Any]:
         "route",
         "route_label",
         "product_name",
+        "involved_products",
         "incident_type",
         "status",
         "status_label",
@@ -134,6 +135,16 @@ def build_ticket_record(
     customer_summary = result.get("customer_summary") or {}
     incident = result.get("incident_summary") or {}
     checklist = result.get("claim_checklist") or {}
+    selected_policies = result.get("selected_policies") or []
+    involved_products = [
+        _to_text(policy.get("product_name"))
+        for policy in selected_policies
+        if isinstance(policy, dict) and policy.get("product_name")
+    ]
+    primary_product = customer_summary.get("product_name") or customer_info.get("product_name")
+    display_product = primary_product
+    if involved_products:
+        display_product = involved_products[0] + (f" 외 {len(involved_products) - 1}개" if len(involved_products) > 1 else "")
     review = human_review or {}
     readiness = checklist.get("readiness_percent")
     status = determine_ticket_status(route, result, bool(review.get("human_review_required")), readiness)
@@ -150,7 +161,8 @@ def build_ticket_record(
         "customer_id": state.get("user_id") or customer_summary.get("customer_id"),
         "route": route,
         "route_label": route_label,
-        "product_name": customer_summary.get("product_name") or customer_info.get("product_name"),
+        "product_name": display_product,
+        "involved_products": involved_products,
         "incident_type": incident.get("incident_type"),
         "status": status,
         "status_label": STATUS_LABELS.get(status, "AI 사전진단 완료"),

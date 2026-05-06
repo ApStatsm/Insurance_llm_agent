@@ -54,10 +54,11 @@ def compute_dashboard_metrics(tickets: list[dict[str, Any]]) -> dict[str, Any]:
         if readiness >= 80:
             ready_count += 1
         route = str(ticket.get("route_label") or ticket.get("route") or "기타")
-        product = str(ticket.get("product_name") or "확인 필요")
+        products = _to_list(ticket.get("involved_products")) or [ticket.get("product_name") or "확인 필요"]
         priority = str(ticket.get("priority_label") or ticket.get("priority") or "보통")
         route_counter[route] += 1
-        product_counter[product] += 1
+        for product in products:
+            product_counter[str(product or "확인 필요")] += 1
         priority_counter[priority] += 1
         if ticket.get("route") == "cs_complaint" or ticket.get("priority") == "urgent":
             complaint_count += 1

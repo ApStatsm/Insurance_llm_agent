@@ -9,7 +9,7 @@ CUSTOMER_DB_PATH = Path(__file__).resolve().parents[2] / "data" / "customer_db" 
 
 PRODUCT_HINTS = {
     "auto": {
-        "tokens": ("자동차", "차", "차량", "침수", "수리", "태풍", "홍수", "사고"),
+        "tokens": ("자동차", "차", "차량", "교통사고", "접촉사고", "침수", "태풍", "홍수", "수리", "견적", "대물", "대인", "자기차량손해", "렌터카", "긴급출동", "사고"),
         "product_tokens": ("자동차", "차량"),
     },
     "cancer": {
@@ -17,11 +17,11 @@ PRODUCT_HINTS = {
         "product_tokens": ("암",),
     },
     "indemnity": {
-        "tokens": ("실손", "도수치료", "비급여", "진료비", "통원", "입원", "의료비"),
+        "tokens": ("실손", "실비", "병원", "치료", "진료비", "치료비", "입원", "통원", "약제비", "도수치료", "비급여", "MRI", "검사", "수술", "상해치료", "의료비"),
         "product_tokens": ("실손", "의료비"),
     },
     "dental": {
-        "tokens": ("치아", "치과", "임플란트", "크라운", "보철"),
+        "tokens": ("치아", "치과", "임플란트", "크라운", "브릿지", "틀니", "보철", "충치", "잇몸", "깨지"),
         "product_tokens": ("치아", "치과"),
     },
 }
@@ -167,6 +167,14 @@ def authenticate_customer(customer_id: str, password: str, csv_path: str | Path 
 def _policy_matches_category(policy: dict[str, Any], category: str) -> bool:
     product_name = str(policy.get("product_name") or "")
     return any(token in product_name for token in PRODUCT_HINTS.get(category, {}).get("product_tokens", ()))
+
+
+def infer_policy_category(product_name: str) -> str:
+    text = str(product_name or "")
+    for category in ("auto", "indemnity", "cancer", "dental"):
+        if any(token in text for token in PRODUCT_HINTS.get(category, {}).get("product_tokens", ())):
+            return category
+    return "unknown"
 
 
 def _question_categories(question: str | None) -> list[str]:

@@ -56,10 +56,19 @@ def assess_human_review_need(
     checklist = result.get("claim_checklist") or {}
     uploaded = result.get("uploaded_documents") or {}
     comparison = uploaded.get("comparison_result") or {}
+    multi_policy = result.get("multi_policy_analysis") or {}
 
     reasons: list[str] = []
     priority = "low"
     human_review_required = False
+
+    if multi_policy.get("enabled"):
+        human_review_required = True
+        priority = "medium"
+        reasons.append("여러 가입상품이 함께 관련되어 상품별 보장 범위와 중복 청구 가능 여부 확인이 필요합니다.")
+        categories = {item.get("policy_category") for item in (multi_policy.get("policy_results") or [])}
+        if {"auto", "indemnity"} <= categories:
+            reasons.append("자동차보험 처리 범위와 실손보험 청구 가능 항목 구분이 필요합니다.")
 
     risk_words = ("불만", "항의", "민원", "소송", "금감원", "상담원", "분쟁")
     if route == "cs_complaint" or any(word in question for word in risk_words):
