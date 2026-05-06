@@ -783,14 +783,16 @@ def _run_document_claim_worker(
     summary_lines = [
         body,
         "",
-        f"접수 상태: {status_text}",
-        f"접수 번호: `{payload['ticket_id']}`",
-        f"확인된 서류: {', '.join(detected_docs) if detected_docs else '업로드된 파일명만으로는 서류 종류를 확정하기 어렵습니다.'}",
-        f"상품 기준 필요 서류: {', '.join(required_docs) if required_docs else '별도 필수 서류 규칙이 확인되지 않았습니다.'}",
+        "**청구 서류 점검 결과**",
+        "",
+        f"- 접수 상태: {status_text}",
+        f"- 접수 번호: {payload['ticket_id']}",
+        f"- 확인된 서류: {', '.join(detected_docs) if detected_docs else '업로드된 파일명만으로는 서류 종류를 확정하기 어렵습니다.'}",
+        f"- 상품 기준 필요 서류: {', '.join(required_docs) if required_docs else '별도 필수 서류 규칙이 확인되지 않았습니다.'}",
     ]
     if amount is not None:
-        summary_lines.append(f"확인된 청구 금액: {amount:,}원")
-    summary_lines.append("정확한 지급 여부와 금액은 담당자 확인 과정에서 최종 안내됩니다.")
+        summary_lines.append(f"- 확인된 청구 금액: {amount:,}원")
+    summary_lines.extend(["", "정확한 지급 여부와 금액은 담당자 확인 과정에서 최종 안내됩니다."])
     final_content = build_multi_policy_answer(multi_policy_analysis) if multi_policy_analysis.get("enabled") else "\n".join(summary_lines)
 
     draft = {
