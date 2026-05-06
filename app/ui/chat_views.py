@@ -1,11 +1,22 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 from typing import Any
 
 import streamlit as st
 
-from app.core.formatting import as_list, format_file_size, mask_display_value, strip_source_markers
+from app.core.formatting import as_list, format_file_size, mask_display_value
+
+try:
+    from app.core.formatting import strip_source_markers
+except ImportError:
+    def strip_source_markers(value: Any) -> str:
+        text = "" if value is None else str(value)
+        text = re.sub(r"\s*\[(?:출처|근거):[^\]]+\]", "", text)
+        text = re.sub(r"[ \t]+\n", "\n", text)
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        return text.strip()
 
 
 def _clean_text(value: Any) -> str:

@@ -5,6 +5,7 @@ from pathlib import Path
 import logging
 import uuid
 from datetime import datetime
+import re
 from typing import Any
 import sys
 
@@ -20,8 +21,27 @@ from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 
+
+def _fallback_strip_source_markers(value: Any) -> str:
+    text = "" if value is None else str(value)
+    text = re.sub(r"\s*\[(?:출처|근거):[^\]]+\]", "", text)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
 try:
     from app.core.formatting import strip_source_markers
+except ModuleNotFoundError:
+    sys.path.append(str(Path(__file__).resolve().parent.parent))
+    try:
+        from app.core.formatting import strip_source_markers
+    except ImportError:
+        strip_source_markers = _fallback_strip_source_markers
+except ImportError:
+    strip_source_markers = _fallback_strip_source_markers
+
+try:
     from app.pipeline import run_multi_agent_pipeline
     from app.pipeline.errors import to_user_friendly_error
     from app.services.agent_handoff_service import build_agent_handoff_summary
@@ -35,7 +55,6 @@ try:
 except ModuleNotFoundError:
     # Allow `streamlit run main.py` from inside `app/` directory.
     sys.path.append(str(Path(__file__).resolve().parent.parent))
-    from app.core.formatting import strip_source_markers
     from app.pipeline import run_multi_agent_pipeline
     from app.pipeline.errors import to_user_friendly_error
     from app.services.agent_handoff_service import build_agent_handoff_summary

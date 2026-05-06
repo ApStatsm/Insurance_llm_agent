@@ -1,16 +1,27 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 import streamlit as st
 
-from app.core.formatting import as_list as _as_list, mask_customer_id, strip_source_markers
+from app.core.formatting import as_list as _as_list, mask_customer_id
 from app.services.dashboard_service import compute_dashboard_metrics, human_review_queue
 from app.services.ticket_service import create_mock_tickets_if_empty, load_ticket_detail, load_ticket_index
 from app.ui.chat_views import render_agent_handoff, _render_bullets
 
 logger = logging.getLogger(__name__)
+
+try:
+    from app.core.formatting import strip_source_markers
+except ImportError:
+    def strip_source_markers(value: Any) -> str:
+        text = "" if value is None else str(value)
+        text = re.sub(r"\s*\[(?:출처|근거):[^\]]+\]", "", text)
+        text = re.sub(r"[ \t]+\n", "\n", text)
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        return text.strip()
 
 
 def _clean_debug_value(value: Any) -> Any:
