@@ -1,0 +1,27 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local virtual environments
+.venv/
+venv/
+env/
+.risk/
+
+# Local secrets and API keys
+.env
+.streamlit/secrets.toml
+config/*.txt
+
+# Runtime-generated demo data
+data/uploads/
+data/tickets/
+
+# Local notebooks/runtime checkpoints
+.ipynb_checkpoints/
+

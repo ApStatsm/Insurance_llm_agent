@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InsuranceAgentState",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "state_version",
+    "request_id",
+    "trace_id",
+    "status",
+    "created_at",
+    "updated_at",
+    "user_id",
+    "user_query",
+    "user_docs",
+    "customer_db_info",
+    "next_route",
+    "draft_response",
+    "final_response",
+    "citations",
+    "review_notes",
+    "retry_count",
+    "audit_log",
+    "error"
+  ],
+  "properties": {
+    "state_version": { "type": "string" },
+    "request_id": { "type": "string" },
+    "trace_id": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": [
+        "INIT",
+        "DB_ENRICHED",
+        "ROUTED",
+        "WORKER_DRAFTED",
+        "MANAGER_REVIEW",
+        "FINALIZED",
+        "ERROR"
+      ]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "user_id": { "type": "string", "minLength": 1 },
+    "user_query": { "type": "string", "minLength": 1 },
+    "user_docs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "doc_id": { "type": "string" },
+          "doc_type": { "type": "string" },
+          "storage_uri": { "type": "string" },
+          "uploaded_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "customer_db_info": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "properties": {
+        "join_year": { "type": "integer" },
+        "product_name": { "type": "string" },
+        "policy_number": { "type": "string" },
+        "coverage_limits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "coverage_name": { "type": "string" },
+              "limit_amount": { "type": "number" },
+              "currency": { "type": "string" }
+            }
+          }
+        },
+        "special_clauses": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "next_route": {
+      "type": ["string", "null"],
+      "enum": [
+        "policy_diagnosis",
+        "precedent_dispute",
+        "document_claim",
+        "cs_complaint",
+        null
+      ]
+    },
+    "draft_response": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "properties": {
+        "worker_type": { "type": "string" },
+        "content": { "type": "string" },
+        "citations": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "final_response": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "properties": {
+        "content": { "type": "string" },
+        "disclaimer_appended": { "type": "boolean" },
+        "approved_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "citations": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "review_notes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "node": { "type": "string" },
+          "reason": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "retry_count": { "type": "integer", "minimum": 0 },
+    "audit_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "timestamp": { "type": "string", "format": "date-time" },
+          "node": { "type": "string" },
+          "action": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "error": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "properties": {
+        "error_code": { "type": "string" },
+        "error_message": { "type": "string" },
+        "failed_node": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}
+
