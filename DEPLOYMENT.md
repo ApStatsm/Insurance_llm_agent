@@ -39,6 +39,7 @@
 4. 저장소, 브랜치, 메인 파일을 선택합니다.
    - Main file path: `app/main.py`
 5. Advanced settings 또는 Secrets에 아래 값을 등록합니다.
+   - Python version: `3.12`
 
 ```toml
 OPENAI_API_KEY = "sk-..."
@@ -47,6 +48,11 @@ OPENAI_API_KEY = "sk-..."
 6. 배포 후 로그인 화면에서 데모 계정으로 접속합니다.
    - 고객 ID: `CUST-0001` ~ `CUST-0050`
    - 비밀번호: `1234`
+
+주의: Chroma, protobuf, sentence-transformers 계열 의존성은 최신 Python 런타임에서 깨질 수 있습니다.
+Streamlit Community Cloud의 Advanced settings에서 Python을 `3.12`로 선택해 배포하세요.
+이미 Python 3.14로 생성된 앱은 설정만 바꿔서는 런타임이 바뀌지 않을 수 있으므로,
+앱을 삭제한 뒤 같은 저장소/도메인으로 다시 배포하면서 Python 3.12를 선택하는 방식을 권장합니다.
 
 ## 로컬 실행
 
@@ -110,4 +116,3 @@ git status
 - API 사용량 제한
 - 운영 로그 및 감사 로그 분리
 - 개인정보 마스킹 정책 강화
-
