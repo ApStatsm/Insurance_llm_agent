@@ -349,6 +349,30 @@ def _render_agent_handoff(handoff: dict[str, Any]) -> None:
         _render_bullets(handoff.get("recommended_next_steps"), "없음")
 
 
+def render_chat_message(message: dict[str, Any], *, assistant_avatar: str | Path) -> None:
+    role = message.get("role", "assistant")
+    if role == "user":
+        _, message_col = st.columns([1.15, 2.85])
+    else:
+        message_col, _ = st.columns([2.85, 1.15])
+    avatar = None if role == "user" else str(assistant_avatar)
+
+    with message_col:
+        with st.chat_message(role, avatar=avatar):
+            if message.get("content"):
+                st.markdown(message["content"])
+            if role == "assistant" and message.get("diagnosis_result"):
+                _render_multi_policy_analysis(message["diagnosis_result"])
+                _render_uploaded_document_analysis(message["diagnosis_result"])
+                _render_requested_report_parts(
+                    message["diagnosis_result"],
+                    message.get("requested_report_sections") or [],
+                )
+            if role == "assistant" and message.get("ticket_summary"):
+                _render_ticket_summary(message.get("ticket_summary"), message.get("agent_handoff_summary"))
+            _render_attachments(message.get("attachments"))
+
+
 
 
 requested_report_sections = _requested_report_sections
