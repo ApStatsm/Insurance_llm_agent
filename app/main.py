@@ -226,6 +226,43 @@ def _create_or_get_ticket(
         return None, None, f"접수 요약을 저장하는 중 문제가 발생했습니다. AI 진단 결과는 정상적으로 확인할 수 있습니다. ({exc})"
 
 
+def _should_show_ticket_summary(
+    *,
+    question: str,
+    route: str | None,
+    diagnosis_result: dict[str, Any] | None,
+    ticket_summary: dict[str, Any] | None,
+) -> bool:
+    if not ticket_summary:
+        return False
+    text = str(question or "")
+    handoff_keywords = (
+        "상담원",
+        "사람 연결",
+        "담당자",
+        "연결해줘",
+        "민원",
+        "불만",
+        "항의",
+        "컴플레인",
+        "소송",
+        "금감원",
+    )
+    if route == "cs_complaint" or any(keyword in text for keyword in handoff_keywords):
+        return True
+
+    uploaded = (diagnosis_result or {}).get("uploaded_documents") or {}
+    comparison = uploaded.get("comparison_result") or {}
+    missing_fields = [
+        item for item in uploaded.get("missing_key_fields") or [] if item.get("status") == "missing"
+    ]
+    return bool(
+        uploaded.get("mismatches")
+        or comparison.get("needs_review_docs")
+        or missing_fields
+    )
+
+
 if not st.session_state.get("authenticated"):
     render_login_screen()
     st.stop()
@@ -395,6 +432,7 @@ if chat_value:
                 ticket_summary = None
                 agent_handoff_summary = None
                 ticket_error = None
+                show_ticket_summary = False
                 requested_sections = requested_report_sections(question)
                 if pipeline_state["status"] == "FINALIZED" and pipeline_state.get("final_response"):
                     answer = pipeline_state["final_response"]["content"]
@@ -414,7 +452,14 @@ if chat_value:
                     render_multi_policy_analysis(diagnosis_result)
                     render_uploaded_document_analysis(diagnosis_result)
                     render_requested_report_parts(diagnosis_result, requested_sections)
-                    render_ticket_summary(ticket_summary, agent_handoff_summary)
+                    show_ticket_summary = _should_show_ticket_summary(
+                        question=question,
+                        route=pipeline_state.get("next_route"),
+                        diagnosis_result=diagnosis_result,
+                        ticket_summary=ticket_summary,
+                    )
+                    if show_ticket_summary:
+                        render_ticket_summary(ticket_summary, agent_handoff_summary)
                     if ticket_error:
                         st.info("접수 요약을 저장하는 중 문제가 발생했습니다. AI 진단 결과는 정상적으로 확인할 수 있습니다.")
 
@@ -466,6 +511,7 @@ if chat_value:
         assistant_message["requested_report_sections"] = requested_sections
     if ticket_summary:
         assistant_message["ticket_summary"] = ticket_summary
+        assistant_message["show_ticket_summary"] = show_ticket_summary
     if agent_handoff_summary:
         assistant_message["agent_handoff_summary"] = agent_handoff_summary
     st.session_state.messages.append(assistant_message)

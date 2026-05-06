@@ -368,7 +368,7 @@ def render_chat_message(message: dict[str, Any], *, assistant_avatar: str | Path
                     message["diagnosis_result"],
                     message.get("requested_report_sections") or [],
                 )
-            if role == "assistant" and message.get("ticket_summary"):
+            if role == "assistant" and message.get("ticket_summary") and message.get("show_ticket_summary"):
                 _render_ticket_summary(message.get("ticket_summary"), message.get("agent_handoff_summary"))
             _render_attachments(message.get("attachments"))
 
