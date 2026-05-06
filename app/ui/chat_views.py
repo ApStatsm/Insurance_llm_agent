@@ -296,7 +296,6 @@ def _render_ticket_summary(ticket: dict[str, Any] | None, handoff: dict[str, Any
         return
     st.markdown("---")
     st.markdown("#### 상담원 전달 준비")
-    st.markdown(f"**가상 접수번호:** `{ticket.get('ticket_id', '생성 실패')}`")
     st.markdown(f"**접수 상태:** {ticket.get('status_label', 'AI 사전진단 완료')}")
     st.markdown(f"**상담원 확인 필요 여부:** {'필요' if ticket.get('human_review_required') else '필요 낮음'}")
     st.markdown(f"**우선도:** {ticket.get('priority_label', '보통')}")
@@ -305,7 +304,6 @@ def _render_ticket_summary(ticket: dict[str, Any] | None, handoff: dict[str, Any
         st.markdown("**추가 확인이 필요한 항목**")
         _render_bullets(reasons, "현재 표시된 항목 없음")
     st.markdown("**다음 단계:** 상담원이 아래 요약 내용을 바탕으로 이어서 확인할 수 있도록 접수 요약이 생성되었습니다.")
-    st.caption("이 접수번호는 데모용 가상 접수번호이며 실제 보험사 접수번호가 아닙니다.")
     if handoff:
         with st.expander("상담원 전달 요약 보기"):
             _render_agent_handoff(handoff)
@@ -322,7 +320,6 @@ def _render_agent_handoff(handoff: dict[str, Any]) -> None:
     ai = handoff.get("ai_assessment") or {}
     docs = handoff.get("document_status") or {}
     review = handoff.get("human_review") or {}
-    st.markdown(f"- 접수번호: `{info.get('ticket_id', '')}`")
     st.markdown(f"- 경로/상태/우선도: {info.get('route_label', '')} · {info.get('status_label', '')} · {info.get('priority_label', '')}")
     st.markdown(f"- 고객/상품: `{customer.get('customer_id', '')}` · {customer.get('product_name', '확인 필요')}")
     st.markdown(f"- 문의: {_clean_text(inquiry.get('original_question', ''))}")

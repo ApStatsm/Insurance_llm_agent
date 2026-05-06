@@ -404,7 +404,7 @@ def build_coverage_assessment(
 def build_next_actions(route: str, claim_checklist: dict[str, Any], incident_summary: dict[str, str]) -> list[str]:
     missing_docs = claim_checklist.get("missing_docs") or []
     if route == "cs_complaint":
-        return ["상담원 연결 접수 번호를 확인해 주세요.", "불편 내용과 원하는 조치 사항을 한 문장으로 정리해 주세요."]
+        return ["불편 내용과 원하는 조치 사항을 한 문장으로 정리해 주세요.", "상담원이 이어서 확인할 수 있도록 문의 내용을 정리해 주세요."]
     actions = []
     if missing_docs:
         actions.append(f"추가 필요 서류를 준비해 주세요: {', '.join(missing_docs)}")

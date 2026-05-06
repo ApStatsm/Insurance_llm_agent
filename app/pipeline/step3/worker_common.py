@@ -786,7 +786,6 @@ def _run_document_claim_worker(
         "**청구 서류 점검 결과**",
         "",
         f"- 접수 상태: {status_text}",
-        f"- 접수 번호: {payload['ticket_id']}",
         f"- 확인된 서류: {', '.join(detected_docs) if detected_docs else '업로드된 파일명만으로는 서류 종류를 확정하기 어렵습니다.'}",
         f"- 상품 기준 필요 서류: {', '.join(required_docs) if required_docs else '별도 필수 서류 규칙이 확인되지 않았습니다.'}",
     ]
@@ -847,7 +846,6 @@ def _run_cs_complaint_worker(state: dict[str, Any]) -> dict[str, Any]:
     queue_ticket_id = f"CSQ-{uuid.uuid4().hex[:10].upper()}"
     content = (
         "불편을 겪으신 점 먼저 죄송합니다. 말씀해주신 내용은 상담원이 이어서 확인할 수 있도록 접수해두었습니다. "
-        f"상담원 연결 접수 번호는 `{queue_ticket_id}`입니다. "
         "연결 전까지 확인된 내용과 준비하시면 좋은 서류를 함께 정리해드리겠습니다. "
         ""
     )
