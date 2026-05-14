@@ -1,44 +1,91 @@
-# macOS / Python
-.DS_Store
+# ==========================================
+# 비밀키 / 환경변수
+# ==========================================
+.env
+.env.*
+*.key
+secrets.json
+**/Gemini api.txt
+**/gemini_api.txt
+**/openai_api.txt
+
+# ==========================================
+# 개인정보 / 데이터
+# ==========================================
+**/customers.csv
+**/complaint_db.csv
+audit_log.csv
+*.log
+
+# 업로드된 고객 자료 (CUST-* 등 식별자 포함)
+data/uploads/
+data/tickets/
+data/customer_db/
+
+# ==========================================
+# Vector DB / 임베딩 (용량 크고 재생성 가능)
+# ==========================================
+*_chroma_db/
+*_chroma_db_last/
+chroma.sqlite3
+data/vectorstore/
+data/processed/
+
+# 원본 PDF (저작권/용량)
+data/raw_pdfs/
+
+# ==========================================
+# Python
+# ==========================================
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 
-# Virtual envs
+# ==========================================
+# 가상환경
+# ==========================================
 .venv/
 venv/
 env/
+ENV/
 .risk/
 
-# Local tool/workspace files
-.claude/
+# ==========================================
+# Jupyter
+# ==========================================
 .ipynb_checkpoints/
+*-checkpoint.ipynb
 
-# Secrets
-.env
-.env.*
+# ==========================================
+# Streamlit
+# ==========================================
 .streamlit/secrets.toml
-config/*.txt
-*api*.txt
-*secret*.txt
 
-# Runtime/demo data
-data/uploads/
-data/tickets/
+# ==========================================
+# IDE / 에디터
+# ==========================================
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
 
-# Customer / private data
-data/customer_db/
-insurance_agent/customers.csv
-insurance_agent/complaint_db.csv
+# ==========================================
+# OS
+# ==========================================
+.DS_Store
+Thumbs.db
 
-# Generated vector DBs
-data/vectorstore/
-insurance_agent/*_chroma_db/
-
-# Generated processed artifacts
-data/processed/*.pkl
-
-# Optional: notebooks if they contain keys or outputs
-# notebooks/
+# ==========================================
+# 모델 캐시
+# ==========================================
+.cache/
+huggingface/
