@@ -90,7 +90,7 @@ def assess_human_review_need(
     if missing_docs:
         human_review_required = True
         priority = priority_max(priority, "medium")
-        reasons.append(f"누락 서류가 있습니다: {', '.join(_to_text(doc) for doc in missing_docs[:3])}")
+        reasons.append(f"누락 서류가 있습니다. {', '.join(_to_text(doc) for doc in missing_docs[:3])}")
     if readiness is not None and int(readiness or 0) < 80:
         human_review_required = True
         priority = priority_max(priority, "medium")

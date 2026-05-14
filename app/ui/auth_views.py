@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def _policy_label(policy: dict[str, Any]) -> str:
     riders = ", ".join(_as_list(policy.get("riders") or policy.get("special_clauses")))
     base = f"{policy.get('product_name', '상품 확인 필요')} / {policy.get('joined_year') or policy.get('join_year') or '연도 확인 필요'}"
-    return f"{base} / 특약: {riders}" if riders else base
+    return f"{base} / 특약 {riders}" if riders else base
 
 
 def _clear_auth_session(default_messages_factory: Callable[[], list[dict[str, str]]]) -> None:
@@ -58,13 +58,13 @@ def _render_login_screen() -> None:
         password = st.text_input("비밀번호", value="1234", type="password")
         submitted = st.form_submit_button("로그인", use_container_width=True)
 
-    st.caption("데모 계정: CUST-0001 ~ CUST-0050 / 비밀번호: 1234")
+    st.caption("데모 계정 CUST-0001 ~ CUST-0050 / 비밀번호 1234")
     if demo_accounts:
         st.markdown(
-            "- 자동차보험 예시: `{auto}` / 1234\n"
-            "- 암보험 예시: `{cancer}` / 1234\n"
-            "- 실손보험 예시: `{indemnity}` / 1234\n"
-            "- 3개 상품 가입 예시: `{multi_policy}` / 1234".format(**demo_accounts)
+            "- 자동차보험 예시 `{auto}` / 1234\n"
+            "- 암보험 예시 `{cancer}` / 1234\n"
+            "- 실손보험 예시 `{indemnity}` / 1234\n"
+            "- 3개 상품 가입 예시 `{multi_policy}` / 1234".format(**demo_accounts)
         )
 
     if submitted:
@@ -98,14 +98,14 @@ def render_logged_in_sidebar(default_messages_factory: Callable[[], list[dict[st
     customer_id = st.session_state.get("customer_id", "")
     st.markdown("### 로그인 정보")
     st.markdown(f"**{context.get('customer_name') or customer_id} 고객님**")
-    st.caption(f"고객 ID: `{customer_id}`")
+    st.caption(f"고객 ID `{customer_id}`")
 
     policies = _as_list(context.get("policies"))
     st.markdown(f"**가입상품 {len(policies)}개**")
     for idx, policy in enumerate(policies, start=1):
         st.caption(f"{idx}. {_policy_label(policy)}")
 
-    with st.expander("개발자 모드: 고객 ID override"):
+    with st.expander("개발자 모드 - 고객 ID override"):
         use_override = st.checkbox("로그인 고객 대신 다른 고객 ID 사용", value=False)
         override_id = st.text_input("디버그용 고객 ID", value=customer_id or "CUST-1029").strip().upper()
         st.caption("기존 고객 ID 직접 입력 방식은 개발/디버그용 fallback으로만 유지됩니다.")

@@ -85,7 +85,7 @@ def expanded_policy_query(query: str, product_name: str) -> str:
     hints = unique_texts([*query_focus_keywords(query), *product_keywords(product_name)])
     if not hints:
         return query
-    return f"{query}\n핵심검색어: {' '.join(hints)}"
+    return f"{query}\n핵심검색어 {' '.join(hints)}"
 
 
 def score_policy_doc(doc: Any, query: str, focus_keywords: list[str]) -> int:
@@ -187,7 +187,7 @@ def _multi_policy_reason(policies: list[dict[str, Any]], question: str) -> str:
 def _build_policy_rag_query(question: str, policy: dict[str, Any]) -> str:
     product_name = to_text(policy.get("product_name"))
     category = infer_product_category(product_name)
-    return f"{question}\n가입상품:{product_name}\n핵심검색어:{POLICY_QUERY_HINTS.get(category, '')}"
+    return f"{question}\n가입상품 {product_name}\n핵심검색어 {POLICY_QUERY_HINTS.get(category, '')}"
 
 
 def _text_list(items: Any) -> list[str]:
@@ -198,6 +198,17 @@ def _text_list(items: Any) -> list[str]:
         else:
             labels.append(to_text(item))
     return [item for item in labels if item]
+
+
+def _special_clauses(policy: dict[str, Any]) -> list[str]:
+    value = policy.get("special_clauses") or policy.get("riders") or []
+    if isinstance(value, list):
+        return [to_text(item) for item in value if to_text(item)]
+    text = to_text(value)
+    for sep in (";", "|", ","):
+        if sep in text:
+            return [item.strip() for item in text.split(sep) if item.strip()]
+    return [text] if text else []
 
 
 def _build_policy_coverage_assessment(
@@ -252,7 +263,7 @@ def _policy_next_actions(category: str, checklist: dict[str, Any]) -> list[str]:
     missing = _text_list((checklist or {}).get("missing_docs"))
     actions: list[str] = []
     if missing:
-        actions.append(f"누락 가능 서류를 확인해 주세요: {', '.join(missing[:3])}")
+        actions.append(f"누락 가능 서류인 {', '.join(missing[:3])}을 확인해 주세요.")
     category_actions = {
         "auto": "사고일시, 사고장소, 차량번호, 수리견적을 확인해 주세요.",
         "indemnity": "진료비 영수증, 세부내역서, 진단서 또는 진료확인서를 확인해 주세요.",
@@ -291,7 +302,13 @@ def _run_rag_for_policy(
         except Exception as exc:
             logger.exception("Multi-policy RAG failed: %s", product_name)
             debug["error"] = str(exc)
-    claim_checklist = build_claim_checklist(product_name, question, uploaded_docs or [], rule_db)
+    claim_checklist = build_claim_checklist(
+        product_name,
+        question,
+        uploaded_docs or [],
+        rule_db,
+        special_clauses=_special_clauses(policy),
+    )
     evidence_cards = build_evidence_cards(retrieved_docs, question, product_name)
     assessment = _build_policy_coverage_assessment(
         question=question,
@@ -421,23 +438,15 @@ def build_multi_policy_answer(multi_policy_analysis: dict[str, Any]) -> str:
         policy = result.get("policy") or {}
         assessment = result.get("coverage_assessment") or {}
         checklist = result.get("claim_checklist") or {}
-        first_evidence = (result.get("evidence_cards") or [{}])[0]
-        evidence_label = (
-            first_evidence.get("article_number")
-            or first_evidence.get("article_title")
-            or first_evidence.get("document_name")
-            or "해당 상품 기준 근거를 충분히 찾지 못했습니다"
-        )
         required_docs = _text_list(checklist.get("required_docs") or checklist.get("missing_docs"))
         missing_info = _text_list(assessment.get("missing_info"))
         lines.extend(
             [
                 f"{idx}. {result.get('section_title', '가입상품 기준 검토')}",
-                f"- 검토 대상: {policy.get('product_name', '확인 필요')}",
-                f"- 판단 요약: {assessment.get('summary', '현재 정보 기준으로 추가 확인이 필요합니다.')}",
-                f"- 주요 근거: {evidence_label}",
-                f"- 필요 서류: {', '.join(required_docs[:5]) if required_docs else '상품 기준 필요 서류 확인 필요'}",
-                f"- 추가 확인사항: {', '.join(missing_info[:4]) if missing_info else '담보 가입 여부와 제출 서류 확인 필요'}",
+                f"- {policy.get('product_name', '확인 필요')} 기준입니다.",
+                f"- {assessment.get('summary', '현재 정보 기준으로 추가 확인이 필요합니다.')}",
+                f"- 필요 서류는 {', '.join(required_docs[:5]) if required_docs else '상품 기준 필요 서류 확인 필요'}입니다.",
+                f"- 추가로 {', '.join(missing_info[:4]) if missing_info else '담보 가입 여부와 제출 서류'}를 확인해 주세요.",
                 "",
             ]
         )

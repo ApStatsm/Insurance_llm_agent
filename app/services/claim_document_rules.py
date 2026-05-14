@@ -47,6 +47,18 @@ def _unique(items: list[str]) -> list[str]:
     return list(dict.fromkeys([item for item in items if item]))
 
 
+def _as_text_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [_to_text(item).strip() for item in value if _to_text(item).strip()]
+    text = _to_text(value)
+    for sep in (";", "|", ","):
+        if sep in text:
+            return [item.strip() for item in text.split(sep) if item.strip()]
+    return [text.strip()] if text.strip() else []
+
+
 def _readiness_label(percent: int) -> str:
     if percent <= 0:
         return "청구 서류 준비 전"
@@ -103,12 +115,40 @@ def _doc_code_to_label(doc_code: str) -> str:
         "accident_report": "사고사실확인서",
         "vehicle_registration": "차량등록증",
         "flood_photo": "침수 사진",
+        "rental_receipt": "렌터카 이용 영수증",
+        "rental_contract": "렌터카 계약서",
+        "roadside_assistance_certificate": "긴급출동 서비스 확인서",
+        "repair_completion_certificate": "수리 완료 확인서",
+        "third_party_repair_estimate": "상대방 차량 수리 견적서",
+        "re_diagnosis_cancer_certificate": "재진단 암 진단확인서",
+        "high_value_cancer_certificate": "고액암 진단확인서",
+        "chemotherapy_certificate": "항암치료 확인서",
+        "prescription": "처방전 사본",
+        "implant_treatment_certificate": "임플란트 시술 확인서",
+        "crown_treatment_certificate": "크라운 치료 확인서",
+        "prosthetic_treatment_certificate": "보철치료 확인서",
     }
     return mapping.get(_to_text(doc_code), _to_text(doc_code))
 
 
+def _rider_doc_groups(required_docs_rules: dict[str, Any], special_clauses: Any = None) -> list[dict[str, Any]]:
+    rider_rules = required_docs_rules.get("rider_required_docs", {}) if isinstance(required_docs_rules, dict) else {}
+    groups: list[dict[str, Any]] = []
+    for rider in _as_text_list(special_clauses):
+        for code in rider_rules.get(rider, []):
+            label = _doc_code_to_label(_to_text(code))
+            groups.append(
+                {
+                    "label": label,
+                    "any_of": [label],
+                    "reason": f"{rider} 가입 여부에 따라 추가 확인될 수 있는 서류입니다.",
+                }
+            )
+    return groups
+
+
 def _fallback_rule_from_legacy(
-    product_name: str, question: str, required_docs_rules: dict[str, Any]
+    product_name: str, question: str, required_docs_rules: dict[str, Any], special_clauses: Any = None
 ) -> dict[str, Any]:
     category, scenario = infer_claim_scenario(product_name, question)
     required_codes: list[str] = []
@@ -124,19 +164,32 @@ def _fallback_rule_from_legacy(
     required_labels = _unique([_doc_code_to_label(code) for code in required_codes])
     return {
         "label": "일반 청구 서류 기준",
-        "required_doc_groups": _legacy_required_docs_to_groups(required_labels),
+        "required_doc_groups": [
+            *_legacy_required_docs_to_groups(required_labels),
+            *_rider_doc_groups(required_docs_rules, special_clauses),
+        ],
         "key_fields": [],
     }
 
 
-def get_required_rule(product_name: str, question: str, required_docs_rules: dict[str, Any]) -> dict[str, Any]:
+def get_required_rule(
+    product_name: str,
+    question: str,
+    required_docs_rules: dict[str, Any],
+    special_clauses: Any = None,
+) -> dict[str, Any]:
     category, scenario = infer_claim_scenario(product_name, question)
     scenario_rules = required_docs_rules.get("claim_scenarios", {})
     if isinstance(scenario_rules, dict):
         category_rules = scenario_rules.get(category, {})
         if isinstance(category_rules, dict) and isinstance(category_rules.get(scenario), dict):
-            return category_rules[scenario]
-    return _fallback_rule_from_legacy(product_name, question, required_docs_rules)
+            rule = dict(category_rules[scenario])
+            rule["required_doc_groups"] = [
+                *(rule.get("required_doc_groups") or []),
+                *_rider_doc_groups(required_docs_rules, special_clauses),
+            ]
+            return rule
+    return _fallback_rule_from_legacy(product_name, question, required_docs_rules, special_clauses)
 
 
 def compare_extracted_docs_with_required(

@@ -117,6 +117,18 @@
       "required_docs": ["repair_estimate", "accident_report", "vehicle_registration"]
     }
   ],
+  "rider_required_docs": {
+    "렌터카특약": ["rental_receipt", "rental_contract"],
+    "긴급출동특약": ["roadside_assistance_certificate"],
+    "자기차량손해": ["repair_completion_certificate", "vehicle_registration"],
+    "대물확장특약": ["third_party_repair_estimate"],
+    "재진단암특약": ["re_diagnosis_cancer_certificate"],
+    "고액암특약": ["high_value_cancer_certificate"],
+    "항암치료특약": ["chemotherapy_certificate", "prescription"],
+    "임플란트특약": ["implant_treatment_certificate", "xray_image"],
+    "크라운특약": ["crown_treatment_certificate"],
+    "보철치료특약": ["prosthetic_treatment_certificate"]
+  },
   "doc_type_aliases": {
     "영수증": "receipt",
     "receipt": "receipt",
@@ -137,6 +149,18 @@
     "차량등록증": "vehicle_registration",
     "vehicle_registration": "vehicle_registration",
     "pdf": "pdf",
-    "misc": "misc"
+    "misc": "misc",
+    "rental_receipt": "rental_receipt",
+    "rental_contract": "rental_contract",
+    "roadside_assistance_certificate": "roadside_assistance_certificate",
+    "repair_completion_certificate": "repair_completion_certificate",
+    "third_party_repair_estimate": "third_party_repair_estimate",
+    "re_diagnosis_cancer_certificate": "re_diagnosis_cancer_certificate",
+    "high_value_cancer_certificate": "high_value_cancer_certificate",
+    "chemotherapy_certificate": "chemotherapy_certificate",
+    "prescription": "prescription",
+    "implant_treatment_certificate": "implant_treatment_certificate",
+    "crown_treatment_certificate": "crown_treatment_certificate",
+    "prosthetic_treatment_certificate": "prosthetic_treatment_certificate"
   }
 }

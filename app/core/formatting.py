@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from typing import Any
 
 
@@ -49,11 +48,3 @@ def mask_customer_id(value: Any) -> str:
     if len(text) <= 4:
         return text
     return f"{text[:4]}***{text[-2:]}"
-
-
-def strip_source_markers(value: Any) -> str:
-    text = to_text(value)
-    text = re.sub(r"\s*\[(?:출처|근거):[^\]]+\]", "", text)
-    text = re.sub(r"[ \t]+\n", "\n", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()

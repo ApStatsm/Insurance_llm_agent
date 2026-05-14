@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from typing import Any
 
 import streamlit as st
@@ -13,20 +12,10 @@ from app.ui.chat_views import render_agent_handoff, _render_bullets
 
 logger = logging.getLogger(__name__)
 
-try:
-    from app.core.formatting import strip_source_markers
-except ImportError:
-    def strip_source_markers(value: Any) -> str:
-        text = "" if value is None else str(value)
-        text = re.sub(r"\s*\[(?:출처|근거):[^\]]+\]", "", text)
-        text = re.sub(r"[ \t]+\n", "\n", text)
-        text = re.sub(r"\n{3,}", "\n\n", text)
-        return text.strip()
-
 
 def _clean_debug_value(value: Any) -> Any:
     if isinstance(value, str):
-        return strip_source_markers(value)
+        return value
     if isinstance(value, list):
         return [_clean_debug_value(item) for item in value]
     if isinstance(value, dict):
@@ -53,19 +42,19 @@ def _render_ticket_detail(ticket_id: str, index_fallback: dict[str, Any] | None 
         st.info("접수 상세 정보를 찾지 못했습니다.")
         return
     handoff = detail.get("agent_handoff_summary") or {}
-    st.markdown(f"### 접수 상세: `{detail.get('ticket_id', ticket_id)}`")
-    st.markdown(f"- 생성일시: {detail.get('created_at', '확인 필요')}")
-    st.markdown(f"- 고객 ID: `{_mask_customer_id(detail.get('customer_id'))}`")
-    st.markdown(f"- 가입 상품: {detail.get('product_name', '확인 필요')}")
-    st.markdown(f"- 문의 유형: {detail.get('incident_type', '확인 필요')}")
-    st.markdown(f"- 상태/우선도: {detail.get('status_label', '확인 필요')} · {detail.get('priority_label', '보통')}")
+    st.markdown(f"### 접수 상세 `{detail.get('ticket_id', ticket_id)}`")
+    st.markdown(f"- 생성일시는 {detail.get('created_at', '확인 필요')}입니다.")
+    st.markdown(f"- 고객 ID는 `{_mask_customer_id(detail.get('customer_id'))}`입니다.")
+    st.markdown(f"- 가입 상품은 {detail.get('product_name', '확인 필요')}입니다.")
+    st.markdown(f"- 문의 유형은 {detail.get('incident_type', '확인 필요')}입니다.")
+    st.markdown(f"- 상태/우선도는 {detail.get('status_label', '확인 필요')} · {detail.get('priority_label', '보통')}입니다.")
     summary = detail.get("summary") or {}
     if summary.get("question"):
-        st.markdown(f"- 고객 질문: {summary.get('question')}")
+        st.markdown(f"- 고객 질문은 {summary.get('question')}")
     if summary.get("assessment_summary"):
-        st.markdown(f"- AI 진단 요약: {summary.get('assessment_summary')}")
-    st.markdown(f"- 제출 서류: {', '.join(detail.get('submitted_docs') or []) or '없음'}")
-    st.markdown(f"- 누락 서류: {', '.join(detail.get('missing_docs') or []) or '없음'}")
+        st.markdown(f"- AI 진단 요약은 {summary.get('assessment_summary')}")
+    st.markdown(f"- 제출 서류는 {', '.join(detail.get('submitted_docs') or []) or '없음'}입니다.")
+    st.markdown(f"- 누락 서류는 {', '.join(detail.get('missing_docs') or []) or '없음'}입니다.")
     if detail.get("human_review_reasons"):
         st.markdown("**상담원 확인 사유**")
         _render_bullets(detail.get("human_review_reasons"), "없음")

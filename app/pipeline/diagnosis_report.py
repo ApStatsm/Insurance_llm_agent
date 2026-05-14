@@ -30,6 +30,18 @@ DOC_TYPE_LABELS = {
     "vehicle_registration": "차량등록증",
     "flood_photo": "침수 사진",
     "estimate": "수리견적서",
+    "rental_receipt": "렌터카 이용 영수증",
+    "rental_contract": "렌터카 계약서",
+    "roadside_assistance_certificate": "긴급출동 서비스 확인서",
+    "repair_completion_certificate": "수리 완료 확인서",
+    "third_party_repair_estimate": "상대방 차량 수리 견적서",
+    "re_diagnosis_cancer_certificate": "재진단 암 진단확인서",
+    "high_value_cancer_certificate": "고액암 진단확인서",
+    "chemotherapy_certificate": "항암치료 확인서",
+    "prescription": "처방전 사본",
+    "implant_treatment_certificate": "임플란트 시술 확인서",
+    "crown_treatment_certificate": "크라운 치료 확인서",
+    "prosthetic_treatment_certificate": "보철치료 확인서",
     "pdf": "PDF 서류",
     "misc": "기타 서류",
     "기타/판별불가": "기타/판별불가",
@@ -279,7 +291,32 @@ def _doc_label(doc_type: str) -> str:
     return DOC_TYPE_LABELS.get(_to_text(doc_type), _to_text(doc_type) or "기타 서류")
 
 
-def _required_doc_codes(product_name: str, question: str, required_docs_rules: dict[str, Any]) -> list[str]:
+def _as_text_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [_to_text(item).strip() for item in value if _to_text(item).strip()]
+    text = _to_text(value)
+    for sep in (";", "|", ","):
+        if sep in text:
+            return [item.strip() for item in text.split(sep) if item.strip()]
+    return [text.strip()] if text.strip() else []
+
+
+def _rider_doc_codes(required_docs_rules: dict[str, Any], special_clauses: Any = None) -> list[str]:
+    rider_rules = required_docs_rules.get("rider_required_docs", {}) if isinstance(required_docs_rules, dict) else {}
+    docs: list[str] = []
+    for rider in _as_text_list(special_clauses):
+        docs.extend(_to_text(doc) for doc in rider_rules.get(rider, []))
+    return docs
+
+
+def _required_doc_codes(
+    product_name: str,
+    question: str,
+    required_docs_rules: dict[str, Any],
+    special_clauses: Any = None,
+) -> list[str]:
     rules = required_docs_rules.get("rules", []) if isinstance(required_docs_rules, dict) else []
     for rule in rules:
         keyword = _to_text(rule.get("product_keyword"))
@@ -293,6 +330,7 @@ def _required_doc_codes(product_name: str, question: str, required_docs_rules: d
         token in _to_text(question) for token in ("침수", "태풍", "홍수")
     ):
         docs.append("flood_photo")
+    docs.extend(_rider_doc_codes(required_docs_rules, special_clauses))
     return _unique([_to_text(doc) for doc in docs])
 
 
@@ -318,9 +356,10 @@ def build_claim_checklist(
     question: str,
     uploaded_files: list[dict[str, Any]] | None,
     required_docs_rules: dict[str, Any] | None,
+    special_clauses: Any = None,
 ) -> dict[str, Any]:
     rules = required_docs_rules or {}
-    required_docs = [_doc_label(code) for code in _required_doc_codes(product_name, question, rules)]
+    required_docs = [_doc_label(code) for code in _required_doc_codes(product_name, question, rules, special_clauses)]
     submitted_docs: list[str] = []
     for file_info in uploaded_files or []:
         filename = _to_text(file_info.get("doc_name") or file_info.get("name") or file_info.get("storage_path"))
@@ -407,7 +446,7 @@ def build_next_actions(route: str, claim_checklist: dict[str, Any], incident_sum
         return ["불편 내용과 원하는 조치 사항을 한 문장으로 정리해 주세요.", "상담원이 이어서 확인할 수 있도록 문의 내용을 정리해 주세요."]
     actions = []
     if missing_docs:
-        actions.append(f"추가 필요 서류를 준비해 주세요: {', '.join(missing_docs)}")
+        actions.append(f"추가 필요 서류인 {', '.join(missing_docs)}을 준비해 주세요.")
     if incident_summary.get("stage") == "분쟁 사례 확인":
         actions.append("보험사의 지급 거절 사유서나 안내 문구가 있다면 함께 확인해 주세요.")
     else:

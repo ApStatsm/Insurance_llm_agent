@@ -109,6 +109,17 @@ def _dedupe_docs(docs: list[Any]) -> list[Any]:
     return dedupe_docs(docs)
 
 
+def _special_clauses(customer: dict[str, Any]) -> list[str]:
+    value = customer.get("special_clauses") or customer.get("riders") or []
+    if isinstance(value, list):
+        return [_to_text(item) for item in value if _to_text(item)]
+    text = _to_text(value)
+    for sep in (";", "|", ","):
+        if sep in text:
+            return [item.strip() for item in text.split(sep) if item.strip()]
+    return [text] if text else []
+
+
 def _extract_article_reference(text: str, fallback_clause: str) -> str:
     article_match = re.search(r"(제\s*\d+\s*조(?:의\s*\d+)?)", text)
     paragraph_match = re.search(r"(제\s*\d+\s*항)", text)
@@ -140,33 +151,6 @@ def _build_reference_display(reference: str, title: str, fallback_clause: str) -
     return fallback or "약관 해당 조항"
 
 
-def _rewrite_policy_citations(content: str, citations: list[dict[str, Any]]) -> str:
-    doc_ref_map: dict[str, str] = {}
-    for c in citations:
-        source_id = _to_text(c.get("source_id"))
-        ref = (
-            _to_text(c.get("reference_display"))
-            or _to_text(c.get("reference"))
-            or _to_text(c.get("clause"))
-            or "약관 해당 조항"
-        )
-        doc_ref_map[source_id] = ref
-
-    pattern = re.compile(r"\[(?:출처|근거):\s*(DOC\d+)\|[^\]]*\]")
-
-    def _repl(match: re.Match[str]) -> str:
-        return ""
-
-    rewritten = pattern.sub(_repl, content)
-    # 모델이 [출처: DOC1] 형태로만 낸 경우도 커버
-    rewritten = re.sub(
-        r"\[(?:출처|근거):\s*(DOC\d+)\]",
-        "",
-        rewritten,
-    )
-    return rewritten
-
-
 def _format_policy_context(docs: list[Any], keyword_hint: str) -> tuple[str, list[dict[str, Any]]]:
     context_blocks: list[str] = []
     citations: list[dict[str, Any]] = []
@@ -177,7 +161,7 @@ def _format_policy_context(docs: list[Any], keyword_hint: str) -> tuple[str, lis
         title = _extract_article_title(doc.page_content)
         reference_display = _build_reference_display(reference, title, clause)
         src_id = f"DOC{idx}"
-        context_blocks.append(f"[{src_id}] {doc.page_content}")
+        context_blocks.append(doc.page_content)
         citations.append(
             {
                 "source_id": src_id,
@@ -186,7 +170,6 @@ def _format_policy_context(docs: list[Any], keyword_hint: str) -> tuple[str, lis
                 "article_title": title,
                 "reference_display": reference_display,
                 "keyword_hint": keyword_hint,
-                "cite_tag": "근거",
             }
         )
     return "\n\n".join(context_blocks), citations
@@ -211,7 +194,7 @@ def _run_policy_diagnosis_worker(
     join_year = _to_text(customer.get("join_year"))
     query = _to_text(updated.get("user_query"))
     keyword_hints = list(dict.fromkeys([*_query_focus_keywords(query), *_product_keywords(product_name)]))
-    combined_query = f"{_expanded_policy_query(query, product_name)}\n가입상품:{product_name}\n가입연도:{join_year}"
+    combined_query = f"{_expanded_policy_query(query, product_name)}\n가입상품 {product_name}\n가입연도 {join_year}"
     docs = _dedupe_docs(
         [
             *vectorstore.similarity_search(query, k=6),
@@ -239,7 +222,13 @@ def _run_policy_diagnosis_worker(
         "documents": _policy_doc_debug_items(docs),
     }
     rule_db = _load_product_doc_rules()
-    claim_checklist = build_claim_checklist(product_name, query, updated.get("user_docs") or [], rule_db)
+    claim_checklist = build_claim_checklist(
+        product_name,
+        query,
+        updated.get("user_docs") or [],
+        rule_db,
+        special_clauses=_special_clauses(customer),
+    )
     uploaded_documents, vision_checklist, doc_analysis_summary = _build_uploaded_document_analysis(
         docs=updated.get("user_docs") or [],
         customer=customer,
@@ -277,7 +266,6 @@ def _run_policy_diagnosis_worker(
                 or result.get("section_title"),
                 "reference_display": (result.get("evidence_cards") or [{}])[0].get("article_number")
                 or result.get("section_title"),
-                "cite_tag": "근거",
             }
             for idx, result in enumerate(multi_policy_analysis.get("policy_results") or [], start=1)
         ]
@@ -313,7 +301,6 @@ def _run_policy_diagnosis_worker(
                 "source_id": "POLICY_SEARCH",
                 "reference": "검색결과없음",
                 "reference_display": "검색결과없음",
-                "cite_tag": "근거",
             }
         ]
         draft = {
@@ -366,23 +353,16 @@ def _run_policy_diagnosis_worker(
 - 확언 금지(조건부 표현 사용)
 - 질문의 핵심 사고 원인에만 집중하세요. 예를 들어 침수/태풍 질문이면 화재 조건은 필요한 경우에만 짧게 언급하고, 화재 사례 중심으로 답하지 마세요.
 
-출력 형식:
-1) 먼저 안내드리면: 한 줄 요약
-2) 어떤 조건을 봐야 하나요?: 2~4줄
-3) 추가로 확인하면 좋은 점: 1~2줄(없으면 생략 가능)
-문장 끝에 [근거: ...] 또는 [출처: ...] 같은 꼬리표를 반복해서 붙이지 마세요.
-DOC번호/항목/대분류 같은 내부 표시는 답변에 직접 노출하지 마세요.
 <context>
 {context}
 </context>
 """,
             ),
-            ("user", "고객질문: {query}"),
+            ("user", "고객질문 {query}"),
         ]
     )
     answer = llm.invoke(prompt.format_messages(context=context_text, query=query)).content
     answer = _guardrail_content(_to_text(answer), citations)
-    answer = _rewrite_policy_citations(answer, citations)
     answer = _append_document_analysis_summary(answer, doc_analysis_summary)
     draft = {
         "worker_type": "policy_diagnosis",
@@ -490,7 +470,7 @@ def _build_uploaded_document_analysis(
         return empty, None, ""
 
     session_dir = _session_dir_from_docs(docs)
-    required_rule = get_required_rule(product_name, question, rule_db)
+    required_rule = get_required_rule(product_name, question, rule_db, special_clauses=_special_clauses(customer))
     extraction_results: list[dict[str, Any]] = []
     if session_dir:
         extraction_results = extract_documents_for_uploaded_files(docs, customer, question, session_dir, llm=llm)
@@ -498,7 +478,13 @@ def _build_uploaded_document_analysis(
         logger.warning("Upload session directory is missing; using filename-based checklist fallback.")
 
     if not extraction_results:
-        fallback_checklist = build_claim_checklist(product_name, question, docs, rule_db)
+        fallback_checklist = build_claim_checklist(
+            product_name,
+            question,
+            docs,
+            rule_db,
+            special_clauses=_special_clauses(customer),
+        )
         uploaded_documents = {
             **empty,
             "files": _public_file_records(docs),
@@ -538,7 +524,7 @@ def _build_uploaded_document_analysis(
 def _append_document_analysis_summary(content: str, summary: str) -> str:
     if not summary:
         return content
-    return f"{content}\n\n업로드 서류 분석 요약: {summary}"
+    return f"{content}\n\n업로드 서류 분석을 함께 반영했습니다. {summary}"
 
 
 def _normalize_doc_type(doc_type: str, aliases: dict[str, str]) -> str:
@@ -561,6 +547,18 @@ def _doc_type_label(doc_type: str) -> str:
         "accident_report": "사고사실확인서",
         "vehicle_registration": "차량등록증",
         "estimate": "수리 견적서",
+        "rental_receipt": "렌터카 이용 영수증",
+        "rental_contract": "렌터카 계약서",
+        "roadside_assistance_certificate": "긴급출동 서비스 확인서",
+        "repair_completion_certificate": "수리 완료 확인서",
+        "third_party_repair_estimate": "상대방 차량 수리 견적서",
+        "re_diagnosis_cancer_certificate": "재진단 암 진단확인서",
+        "high_value_cancer_certificate": "고액암 진단확인서",
+        "chemotherapy_certificate": "항암치료 확인서",
+        "prescription": "처방전 사본",
+        "implant_treatment_certificate": "임플란트 시술 확인서",
+        "crown_treatment_certificate": "크라운 치료 확인서",
+        "prosthetic_treatment_certificate": "보철치료 확인서",
         "pdf": "PDF 서류",
         "misc": "기타 서류",
     }
@@ -572,13 +570,20 @@ def _doc_type_labels(doc_types: list[str] | set[str]) -> list[str]:
     return [_doc_type_label(doc_type) for doc_type in sorted([d for d in doc_types if d])]
 
 
-def _required_docs_by_product(product_name: str, rule_db: dict[str, Any]) -> set[str]:
+def _required_docs_by_product(product_name: str, rule_db: dict[str, Any], special_clauses: Any = None) -> set[str]:
     rules = rule_db.get("rules", [])
+    docs: set[str] = set()
     for rule in rules:
         keyword = _to_text(rule.get("product_keyword")).strip()
         if keyword and keyword in product_name:
-            return set(_to_text(v) for v in rule.get("required_docs", []))
-    return set(_to_text(v) for v in rule_db.get("default", []))
+            docs = set(_to_text(v) for v in rule.get("required_docs", []))
+            break
+    if not docs:
+        docs = set(_to_text(v) for v in rule_db.get("default", []))
+    rider_rules = rule_db.get("rider_required_docs", {})
+    for rider in _special_clauses({"special_clauses": special_clauses}):
+        docs.update(_to_text(v) for v in rider_rules.get(rider, []))
+    return docs
 
 
 def _precedent_score(query: str, case: dict[str, Any]) -> int:
@@ -602,7 +607,7 @@ def _run_precedent_dispute_worker(state: dict[str, Any], *, llm: Any) -> dict[st
     if top_cases:
         context = "\n\n".join(
             [
-                f"[CASE{i}] 사건번호:{c.get('case_id')} / 쟁점:{c.get('issue')} / 요약:{c.get('summary')} / 판단:{c.get('decision')}"
+                f"사건번호 {c.get('case_id')} / 쟁점 {c.get('issue')} / 요약 {c.get('summary')} / 판단 {c.get('decision')}"
                 for i, c in enumerate(top_cases, start=1)
             ]
         )
@@ -615,7 +620,7 @@ def _run_precedent_dispute_worker(state: dict[str, Any], *, llm: Any) -> dict[st
             for i, c in enumerate(top_cases, start=1)
         ]
     else:
-        context = "[CASE0] 로컬 분쟁조정례 DB에 일치 사례 없음"
+        context = "로컬 분쟁조정례 DB에 일치 사례 없음"
         citations = [{"source_id": "CASE0", "case_id": "N/A", "title": "No Match"}]
 
     prompt = ChatPromptTemplate.from_messages(
@@ -627,24 +632,24 @@ def _run_precedent_dispute_worker(state: dict[str, Any], *, llm: Any) -> dict[st
 법률/심사 용어는 필요한 만큼만 쓰고, 어려운 말은 쉬운 말로 풀어 쓰세요.
 확정적으로 단정하지 말고 "비슷하게 볼 여지가 있습니다", "다르게 판단될 수 있습니다"처럼 조건부로 안내하세요.
 
-단락 구성:
-1) 비슷하게 볼 수 있는 점
-2) 다르게 확인될 수 있는 점
-3) 고객님이 유의하실 점
-
-문장 끝에 [출처: ...] 같은 꼬리표를 붙이지 마세요.
 <context>
 {context}
 </context>
 """,
             ),
-            ("user", "고객질문: {query}"),
+            ("user", "고객질문 {query}"),
         ]
     )
     answer = llm.invoke(prompt.format_messages(context=context, query=query)).content
     answer = _guardrail_content(_to_text(answer), citations)
     rule_db = _load_product_doc_rules()
-    claim_checklist = build_claim_checklist(product_name, query, updated.get("user_docs") or [], rule_db)
+    claim_checklist = build_claim_checklist(
+        product_name,
+        query,
+        updated.get("user_docs") or [],
+        rule_db,
+        special_clauses=_special_clauses(customer),
+    )
     uploaded_documents, vision_checklist, doc_analysis_summary = _build_uploaded_document_analysis(
         docs=updated.get("user_docs") or [],
         customer=customer,
@@ -715,7 +720,7 @@ def _run_document_claim_worker(
     aliases = rule_db.get("doc_type_aliases", {})
     doc_types = {_normalize_doc_type(_to_text(d.get("doc_type")), aliases) for d in docs}
     doc_types = {d for d in doc_types if d}
-    required = _required_docs_by_product(product_name, rule_db)
+    required = _required_docs_by_product(product_name, rule_db, special_clauses=_special_clauses(customer))
     missing = sorted(required - doc_types)
     amount = _extract_claim_amount(query)
     evidence_docs: list[Any] = []
@@ -731,7 +736,13 @@ def _run_document_claim_worker(
         except Exception:
             logger.exception("Document claim evidence search failed")
 
-    claim_checklist = vision_checklist or build_claim_checklist(product_name, query, docs, rule_db)
+    claim_checklist = vision_checklist or build_claim_checklist(
+        product_name,
+        query,
+        docs,
+        rule_db,
+        special_clauses=_special_clauses(customer),
+    )
     evidence_cards = build_evidence_cards(evidence_docs, query, product_name)
     diagnosis_result = build_diagnosis_result(
         customer_info=customer,
@@ -757,7 +768,7 @@ def _run_document_claim_worker(
         status_text = "추가 서류 확인 필요"
         body = (
             "올려주신 서류를 먼저 확인해보니, 접수를 진행하려면 아래 서류를 더 준비해주시면 좋겠습니다.\n\n"
-            f"필요한 서류: {', '.join(checklist_missing)}"
+            f"필요한 서류는 {', '.join(checklist_missing)}입니다."
         )
     else:
         status_text = "기본 서류 확인됨"
@@ -779,18 +790,20 @@ def _run_document_claim_worker(
         },
     }
     detected_docs = _doc_type_labels(doc_types)
-    required_docs = _doc_type_labels(required)
+    required_docs = claim_checklist.get("required_docs") or _doc_type_labels(required)
     summary_lines = [
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+        "📋 청구 서류 점검 결과",
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+        "",
+        f"- {status_text}",
+        f"- 확인된 서류는 {', '.join(detected_docs) if detected_docs else '업로드된 파일명만으로는 서류 종류를 확정하기 어렵습니다.'}",
+        f"- 상품 기준 필요 서류는 {', '.join(required_docs) if required_docs else '별도 필수 서류 규칙이 확인되지 않았습니다.'}",
+        "",
         body,
-        "",
-        "**청구 서류 점검 결과**",
-        "",
-        f"- 접수 상태: {status_text}",
-        f"- 확인된 서류: {', '.join(detected_docs) if detected_docs else '업로드된 파일명만으로는 서류 종류를 확정하기 어렵습니다.'}",
-        f"- 상품 기준 필요 서류: {', '.join(required_docs) if required_docs else '별도 필수 서류 규칙이 확인되지 않았습니다.'}",
     ]
     if amount is not None:
-        summary_lines.append(f"- 확인된 청구 금액: {amount:,}원")
+        summary_lines.append(f"- 확인된 청구 금액은 {amount:,}원입니다.")
     summary_lines.extend(["", "정확한 지급 여부와 금액은 담당자 확인 과정에서 최종 안내됩니다."])
     final_content = build_multi_policy_answer(multi_policy_analysis) if multi_policy_analysis.get("enabled") else "\n".join(summary_lines)
 
@@ -861,7 +874,13 @@ def _run_cs_complaint_worker(state: dict[str, Any]) -> dict[str, Any]:
             route="cs_complaint",
             evidence_cards=[],
             claim_checklist=vision_checklist
-            or build_claim_checklist(product_name, query, updated.get("user_docs") or [], rule_db),
+            or build_claim_checklist(
+                product_name,
+                query,
+                updated.get("user_docs") or [],
+                rule_db,
+                special_clauses=_special_clauses(customer),
+            ),
             uploaded_documents=uploaded_documents,
         ),
         "created_at": updated["updated_at"],

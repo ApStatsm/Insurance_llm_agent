@@ -94,8 +94,8 @@ def build_vision_extraction_prompt(product_name: str, question: str) -> str:
     doc_types = ", ".join(DOCUMENT_TYPES)
     return f"""
 당신은 한국어 보험금 청구 서류를 분석하는 Vision 문서 분류/추출 도우미입니다.
-가입상품: {product_name or "확인 필요"}
-고객 질문: {question or "확인 필요"}
+가입상품 {product_name or "확인 필요"}
+고객 질문 {question or "확인 필요"}
 
 이미지에 보이는 내용만 추출하세요. 보이지 않는 값은 null로 두세요.
 추측이 필요한 내용은 warnings 배열에 넣고 needs_review를 true로 설정하세요.
@@ -103,7 +103,7 @@ def build_vision_extraction_prompt(product_name: str, question: str) -> str:
 문서가 사고/차량 사진인 경우 침수, 파손, 차량 관련 단서를 damage_type 또는 warnings에 반영하세요.
 JSON 외의 설명 문장을 절대 출력하지 마세요.
 
-문서 유형 후보: {doc_types}
+문서 유형 후보 {doc_types}
 
 다음 JSON 스키마만 출력하세요.
 {{
@@ -209,8 +209,8 @@ def extract_document_fields_with_vision(
     guess_hint = _to_text(file_record.get("doc_type_guess"))
     prompt = (
         f"{build_vision_extraction_prompt(product_name, question)}\n\n"
-        f"참고 파일명: {filename_hint}\n"
-        f"파일명 기반 1차 추정: {guess_hint or '확인 필요'}"
+        f"참고 파일명 {filename_hint}\n"
+        f"파일명 기반 1차 추정 {guess_hint or '확인 필요'}"
     )
     content: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
     for item in vision_inputs:
@@ -224,7 +224,7 @@ def extract_document_fields_with_vision(
         result["processing_status"] = "extracted"
     except Exception as exc:
         logger.exception("Vision document extraction failed: %s", file_record.get("saved_filename"))
-        result = fallback_extraction_result(file_record, f"Vision 분석 실패: {exc.__class__.__name__}")
+        result = fallback_extraction_result(file_record, f"Vision 분석 실패 - {exc.__class__.__name__}")
 
     result["file_name"] = _to_text(file_record.get("original_filename") or file_record.get("saved_filename"))
     result["saved_filename"] = file_record.get("saved_filename")
@@ -268,7 +268,7 @@ def extract_documents_for_uploaded_files(
             results.append(extraction)
         except Exception as exc:
             logger.exception("Uploaded document processing failed: %s", record.get("saved_filename"))
-            extraction = fallback_extraction_result(record, f"문서 처리 실패: {exc.__class__.__name__}")
+            extraction = fallback_extraction_result(record, f"문서 처리 실패 - {exc.__class__.__name__}")
             try:
                 json_path = save_extraction_result(record, extraction, session_dir)
             except Exception:

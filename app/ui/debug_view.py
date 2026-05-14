@@ -47,11 +47,11 @@ def render_admin_debug_mode() -> None:
     run = runs[selected_index]
 
     st.markdown("### 실행 요약")
-    st.markdown(f"- 고객 ID: `{run.get('customer_id', '')}`")
-    st.markdown(f"- 질문: {run.get('question', '')}")
-    st.markdown(f"- 처리 상태: `{run.get('status', '')}`")
-    st.markdown(f"- route: `{run.get('route', '')}`")
-    st.markdown(f"- retry: `{run.get('retry_count', 0)}`")
+    st.markdown(f"- 고객 ID는 `{run.get('customer_id', '')}`입니다.")
+    st.markdown(f"- 질문은 {run.get('question', '')}")
+    st.markdown(f"- 처리 상태는 `{run.get('status', '')}`입니다.")
+    st.markdown(f"- route는 `{run.get('route', '')}`입니다.")
+    st.markdown(f"- retry는 `{run.get('retry_count', 0)}`입니다.")
     if run.get("upload_errors"):
         st.warning("파일 업로드 처리 오류가 있습니다.")
         st.code("\n".join(run.get("upload_errors") or []))

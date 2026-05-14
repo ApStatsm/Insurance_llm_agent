@@ -1,27 +1,44 @@
+# macOS / Python
 .DS_Store
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 
-# Local virtual environments
+# Virtual envs
 .venv/
 venv/
 env/
 .risk/
 
-# Local secrets and API keys
+# Local tool/workspace files
+.claude/
+.ipynb_checkpoints/
+
+# Secrets
 .env
+.env.*
 .streamlit/secrets.toml
 config/*.txt
+*api*.txt
+*secret*.txt
 
-# Runtime-generated demo data
+# Runtime/demo data
 data/uploads/
 data/tickets/
 
-# Local notebooks/runtime checkpoints
-.ipynb_checkpoints/
+# Customer / private data
+data/customer_db/
+insurance_agent/customers.csv
+insurance_agent/complaint_db.csv
 
+# Generated vector DBs
+data/vectorstore/
+insurance_agent/*_chroma_db/
+
+# Generated processed artifacts
+data/processed/*.pkl
+
+# Optional: notebooks if they contain keys or outputs
+# notebooks/

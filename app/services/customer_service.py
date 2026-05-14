@@ -101,7 +101,7 @@ def _normalize_policy(row: dict[str, Any]) -> dict[str, Any]:
 def load_customers(csv_path: str | Path | None = None) -> list[dict[str, Any]]:
     path = Path(csv_path) if csv_path else CUSTOMER_DB_PATH
     if not path.exists():
-        raise FileNotFoundError(f"customers.csv를 찾을 수 없습니다: {path}")
+        raise FileNotFoundError(f"customers.csv를 찾을 수 없습니다. {path}")
 
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
@@ -142,7 +142,7 @@ def get_customer_profile(customer_id: str, csv_path: str | Path | None = None) -
 def build_customer_context(customer_id: str, csv_path: str | Path | None = None) -> dict[str, Any]:
     profile = get_customer_profile(customer_id, csv_path)
     if not profile:
-        raise KeyError(f"가입상품 정보를 찾을 수 없습니다: {customer_id}")
+        raise KeyError(f"가입상품 정보를 찾을 수 없습니다. {customer_id}")
     return profile
 
 

@@ -100,7 +100,7 @@ def extract_document_fields_with_vision(
                     "반드시 JSON 객체만 출력하세요. 확실하지 않은 값은 null로 두세요. "
                     "doc_type은 receipt, medical_statement, treatment_detail, diagnosis_certificate, "
                     "pathology_report, repair_estimate, accident_report, vehicle_registration, misc 중 하나로 고르세요. "
-                    "필드: doc_type, issuer_name, patient_name, treatment_date, issue_date, total_amount, "
+                    "필드는 doc_type, issuer_name, patient_name, treatment_date, issue_date, total_amount, "
                     "vehicle_number, diagnosis_name, confidence, warnings."
                 ),
             }
@@ -125,4 +125,3 @@ def extract_document_fields_with_vision(
                 }
             )
     return results
-

@@ -1,26 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-import re
 from typing import Any
 
 import streamlit as st
 
-from app.core.formatting import as_list, format_file_size, mask_display_value
-
-try:
-    from app.core.formatting import strip_source_markers
-except ImportError:
-    def strip_source_markers(value: Any) -> str:
-        text = "" if value is None else str(value)
-        text = re.sub(r"\s*\[(?:출처|근거):[^\]]+\]", "", text)
-        text = re.sub(r"[ \t]+\n", "\n", text)
-        text = re.sub(r"\n{3,}", "\n\n", text)
-        return text.strip()
+from app.core.formatting import as_list, format_file_size, mask_display_value, to_text
 
 
 def _clean_text(value: Any) -> str:
-    return strip_source_markers(value)
+    return to_text(value)
 
 def _format_file_size(size_bytes: int | None) -> str:
     return format_file_size(size_bytes)
@@ -98,27 +87,27 @@ def _render_requested_report_parts(
 
     if "assessment" in sections:
         st.markdown("**보상 가능성 진단**")
-        st.markdown(f"- 상태: {assessment.get('label', '추가 확인 필요')}")
-        st.markdown(f"- 요약: {_clean_text(assessment.get('summary', '현재 정보 기준으로 추가 확인이 필요합니다.'))}")
+        st.markdown(f"- 상태는 {assessment.get('label', '추가 확인 필요')}입니다.")
+        st.markdown(f"- {_clean_text(assessment.get('summary', '현재 정보 기준으로 추가 확인이 필요합니다.'))}")
         if assessment.get("missing_info"):
-            st.markdown("- 추가 확인:")
+            st.markdown("- 추가 확인 항목")
             _render_bullets(_as_list(assessment.get("missing_info")), "현재 단계에서 별도 표시된 항목 없음")
 
     if "customer" in sections:
         st.markdown("**고객 가입 정보**")
-        st.markdown(f"- 고객 ID: `{customer.get('customer_id', '확인 필요')}`")
-        st.markdown(f"- 가입 상품: {customer.get('product_name', '확인 필요')}")
-        st.markdown(f"- 가입연도: {customer.get('joined_year', '확인 필요')}")
-        st.markdown(f"- 증권번호: `{customer.get('policy_number', '확인 필요')}`")
-        st.markdown(f"- 특약: {', '.join(_as_list(customer.get('riders'))) if customer.get('riders') else '확인 필요'}")
-        st.markdown(f"- 담보한도: {customer.get('coverage_limit', '확인 필요')}")
+        st.markdown(f"- 고객 ID는 `{customer.get('customer_id', '확인 필요')}`입니다.")
+        st.markdown(f"- 가입 상품은 {customer.get('product_name', '확인 필요')}입니다.")
+        st.markdown(f"- 가입연도는 {customer.get('joined_year', '확인 필요')}입니다.")
+        st.markdown(f"- 증권번호는 `{customer.get('policy_number', '확인 필요')}`입니다.")
+        st.markdown(f"- 특약은 {', '.join(_as_list(customer.get('riders'))) if customer.get('riders') else '확인 필요'}입니다.")
+        st.markdown(f"- 담보한도는 {customer.get('coverage_limit', '확인 필요')}입니다.")
 
     if "incident" in sections:
         st.markdown("**사고 상황 요약**")
-        st.markdown(f"- 사고 유형: {incident.get('incident_type', '확인 필요')}")
-        st.markdown(f"- 원인: {incident.get('cause', '확인 필요')}")
-        st.markdown(f"- 대상: {incident.get('target', '확인 필요')}")
-        st.markdown(f"- 진행 단계: {incident.get('stage', '확인 필요')}")
+        st.markdown(f"- 사고 유형은 {incident.get('incident_type', '확인 필요')}입니다.")
+        st.markdown(f"- 원인은 {incident.get('cause', '확인 필요')}입니다.")
+        st.markdown(f"- 대상은 {incident.get('target', '확인 필요')}입니다.")
+        st.markdown(f"- 진행 단계는 {incident.get('stage', '확인 필요')}입니다.")
 
     if "next_actions" in sections:
         st.markdown("**다음 행동 안내**")
@@ -128,11 +117,11 @@ def _render_requested_report_parts(
         st.markdown("**약관 근거**")
         if evidence_cards:
             for idx, card in enumerate(evidence_cards, start=1):
-                with st.expander(f"근거 {idx}: {card.get('article_title') or card.get('article_number') or '약관 원문 기준'}"):
-                    st.markdown(f"- 문서: {card.get('document_name', '확인 필요')}")
-                    st.markdown(f"- 상품: {card.get('product_name', '확인 필요')}")
-                    st.markdown(f"- 조항: {card.get('article_number', '확인 필요')}")
-                    st.markdown(f"- 구분: {card.get('clause_type', '약관 원문 기준')}")
+                with st.expander(f"근거 {idx} - {card.get('article_title') or card.get('article_number') or '약관 원문 기준'}"):
+                    st.markdown(f"- 문서는 {card.get('document_name', '확인 필요')}입니다.")
+                    st.markdown(f"- 상품은 {card.get('product_name', '확인 필요')}입니다.")
+                    st.markdown(f"- 조항은 {card.get('article_number', '확인 필요')}입니다.")
+                    st.markdown(f"- 구분은 {card.get('clause_type', '약관 원문 기준')}입니다.")
                     st.markdown("**약관 원문**")
                     st.markdown(_clean_text(card.get("source_text", "확인 필요")))
                     st.markdown("**AI 해석**")
@@ -144,11 +133,11 @@ def _render_requested_report_parts(
 
     if "checklist" in sections:
         st.markdown("**청구 필요서류 체크리스트**")
-        st.markdown("- 제출 완료:")
+        st.markdown("- 제출 완료")
         _render_bullets(_as_list(checklist.get("submitted_docs")), "없음")
-        st.markdown("- 추가 필요:")
+        st.markdown("- 추가 필요")
         _render_bullets(_as_list(checklist.get("missing_docs")), "없음")
-        st.markdown("- 상품 기준 필요 서류:")
+        st.markdown("- 상품 기준 필요 서류")
         _render_bullets(_as_list(checklist.get("required_docs")), "확인 필요")
 
     if "readiness" in sections:
@@ -184,7 +173,7 @@ def _render_uploaded_document_analysis(diagnosis_result: dict[str, Any]) -> None
             name = file_info.get("file_name") or "첨부파일"
             status = file_info.get("processing_status") or "saved"
             guess = file_info.get("doc_type_guess") or "확인 필요"
-            st.markdown(f"- {name}: {status} · 추정 유형: {guess}")
+            st.markdown(f"- {name} - {status} · 추정 유형 {guess}")
     else:
         st.markdown("- 업로드 파일 없음")
 
@@ -201,7 +190,7 @@ def _render_uploaded_document_analysis(diagnosis_result: dict[str, Any]) -> None
     if missing_groups:
         for item in missing_groups:
             any_of = ", ".join(_as_list(item.get("any_of")))
-            st.markdown(f"- {item.get('label', any_of or '확인 필요')}: {item.get('reason', '청구 심사에 필요할 수 있습니다.')}")
+            st.markdown(f"- {item.get('label', any_of or '확인 필요')} - {item.get('reason', '청구 심사에 필요할 수 있습니다.')}")
     else:
         st.markdown("- 없음")
 
@@ -211,14 +200,14 @@ def _render_uploaded_document_analysis(diagnosis_result: dict[str, Any]) -> None
             title = f"{result.get('file_name', '첨부파일')} · {result.get('doc_type', '기타/판별불가')}"
             with st.expander(title):
                 fields = result.get("extracted_fields") or {}
-                st.markdown(f"- 신뢰도: {float(result.get('confidence') or 0):.2f}")
-                st.markdown(f"- 발급기관: {result.get('issuer') or fields.get('hospital_name') or fields.get('repair_shop') or '확인 필요'}")
-                st.markdown(f"- 일자: {result.get('issue_date') or result.get('date_of_service') or fields.get('treatment_date') or fields.get('accident_date') or '확인 필요'}")
-                st.markdown(f"- 금액: {result.get('amount') or fields.get('total_amount') or fields.get('repair_amount') or '확인 필요'}")
+                st.markdown(f"- 신뢰도는 {float(result.get('confidence') or 0):.2f}입니다.")
+                st.markdown(f"- 발급기관은 {result.get('issuer') or fields.get('hospital_name') or fields.get('repair_shop') or '확인 필요'}입니다.")
+                st.markdown(f"- 일자는 {result.get('issue_date') or result.get('date_of_service') or fields.get('treatment_date') or fields.get('accident_date') or '확인 필요'}입니다.")
+                st.markdown(f"- 금액은 {result.get('amount') or fields.get('total_amount') or fields.get('repair_amount') or '확인 필요'}입니다.")
                 if fields.get("patient_name"):
-                    st.markdown(f"- 환자명: {_mask_display_value(fields.get('patient_name'), kind='name')}")
+                    st.markdown(f"- 환자명은 {_mask_display_value(fields.get('patient_name'), kind='name')}입니다.")
                 if fields.get("vehicle_number"):
-                    st.markdown(f"- 차량번호: {_mask_display_value(fields.get('vehicle_number'), kind='vehicle')}")
+                    st.markdown(f"- 차량번호는 {_mask_display_value(fields.get('vehicle_number'), kind='vehicle')}입니다.")
                 if result.get("raw_text_summary"):
                     st.caption(_clean_text(result.get("raw_text_summary"))[:240])
                 for warning in _as_list(result.get("warnings")):
@@ -229,7 +218,7 @@ def _render_uploaded_document_analysis(diagnosis_result: dict[str, Any]) -> None
     if needs_review_docs or missing_fields:
         st.markdown("**확인 필요 정보**")
         for item in needs_review_docs:
-            st.warning(_clean_text(f"{item.get('file_name', '첨부파일')}: {item.get('reason', '확인이 필요합니다.')}"))
+            st.warning(_clean_text(f"{item.get('file_name', '첨부파일')} - {item.get('reason', '확인이 필요합니다.')}"))
         for item in missing_fields:
             st.warning(_clean_text(item.get("message", "핵심 필드 확인이 필요합니다.")))
 
@@ -271,9 +260,9 @@ def _render_multi_policy_analysis(diagnosis_result: dict[str, Any]) -> None:
         readiness = max(0, min(readiness, 100))
         title = result.get("section_title") or policy.get("product_name") or "가입상품 기준 검토"
         with st.expander(title):
-            st.markdown(f"- 적용 상품: {policy.get('product_name', '확인 필요')}")
-            st.markdown(f"- 판단: {assessment.get('label', '추가 확인 필요')}")
-            st.markdown(f"- 요약: {_clean_text(assessment.get('summary', '현재 정보 기준으로 추가 확인이 필요합니다.'))}")
+            st.markdown(f"- 적용 상품은 {policy.get('product_name', '확인 필요')}입니다.")
+            st.markdown(f"- 판단은 {assessment.get('label', '추가 확인 필요')}입니다.")
+            st.markdown(f"- {_clean_text(assessment.get('summary', '현재 정보 기준으로 추가 확인이 필요합니다.'))}")
             st.markdown("**필요서류**")
             _render_bullets(_as_list(checklist.get("required_docs") or checklist.get("missing_docs")), "확인 필요")
             st.markdown("**청구 서류 준비율**")
@@ -283,7 +272,7 @@ def _render_multi_policy_analysis(diagnosis_result: dict[str, Any]) -> None:
                 st.markdown("**약관 근거 카드**")
                 for idx, card in enumerate(evidence_cards[:3], start=1):
                     st.markdown(
-                        f"- 근거 {idx}: {card.get('document_name', '약관 원문')} / "
+                        f"- 근거 {idx} - {card.get('document_name', '약관 원문')} / "
                         f"{card.get('article_number') or card.get('article_title') or '조항 확인 필요'}"
                     )
                     st.caption(_clean_text(card.get("source_text"))[:220])
@@ -307,14 +296,14 @@ def _render_ticket_summary(ticket: dict[str, Any] | None, handoff: dict[str, Any
         return
     st.markdown("---")
     st.markdown("#### 상담원 전달 준비")
-    st.markdown(f"**접수 상태:** {ticket.get('status_label', 'AI 사전진단 완료')}")
-    st.markdown(f"**상담원 확인 필요 여부:** {'필요' if ticket.get('human_review_required') else '필요 낮음'}")
-    st.markdown(f"**우선도:** {ticket.get('priority_label', '보통')}")
+    st.markdown(f"**접수 상태** {ticket.get('status_label', 'AI 사전진단 완료')}")
+    st.markdown(f"**상담원 확인 필요 여부** {'필요' if ticket.get('human_review_required') else '필요 낮음'}")
+    st.markdown(f"**우선도** {ticket.get('priority_label', '보통')}")
     reasons = ticket.get("human_review_reasons") or []
     if reasons:
         st.markdown("**추가 확인이 필요한 항목**")
         _render_bullets(reasons, "현재 표시된 항목 없음")
-    st.markdown("**다음 단계:** 상담원이 아래 요약 내용을 바탕으로 이어서 확인할 수 있도록 접수 요약이 생성되었습니다.")
+    st.markdown("**다음 단계** 상담원이 아래 요약 내용을 바탕으로 이어서 확인할 수 있도록 접수 요약이 생성되었습니다.")
     if handoff:
         with st.expander("상담원 전달 요약 보기"):
             _render_agent_handoff(handoff)
@@ -331,14 +320,14 @@ def _render_agent_handoff(handoff: dict[str, Any]) -> None:
     ai = handoff.get("ai_assessment") or {}
     docs = handoff.get("document_status") or {}
     review = handoff.get("human_review") or {}
-    st.markdown(f"- 경로/상태/우선도: {info.get('route_label', '')} · {info.get('status_label', '')} · {info.get('priority_label', '')}")
-    st.markdown(f"- 고객/상품: `{customer.get('customer_id', '')}` · {customer.get('product_name', '확인 필요')}")
-    st.markdown(f"- 문의: {_clean_text(inquiry.get('original_question', ''))}")
-    st.markdown(f"- 사고유형/단계: {inquiry.get('incident_type', '')} · {inquiry.get('current_stage', '')}")
-    st.markdown(f"- AI 판단: {ai.get('coverage_label', '추가 확인 필요')} · {_clean_text(ai.get('assessment_summary', ''))}")
-    st.markdown(f"- 제출 서류: {', '.join(docs.get('submitted_docs') or []) or '없음'}")
-    st.markdown(f"- 누락 서류: {', '.join(docs.get('missing_docs') or []) or '없음'}")
-    st.markdown(f"- 청구 서류 준비율: {docs.get('readiness_percent', 0)}%")
+    st.markdown(f"- 경로/상태/우선도는 {info.get('route_label', '')} · {info.get('status_label', '')} · {info.get('priority_label', '')}입니다.")
+    st.markdown(f"- 고객/상품은 `{customer.get('customer_id', '')}` · {customer.get('product_name', '확인 필요')}입니다.")
+    st.markdown(f"- 문의 내용은 {_clean_text(inquiry.get('original_question', ''))}")
+    st.markdown(f"- 사고유형/단계는 {inquiry.get('incident_type', '')} · {inquiry.get('current_stage', '')}입니다.")
+    st.markdown(f"- AI 판단은 {ai.get('coverage_label', '추가 확인 필요')} · {_clean_text(ai.get('assessment_summary', ''))}")
+    st.markdown(f"- 제출 서류는 {', '.join(docs.get('submitted_docs') or []) or '없음'}입니다.")
+    st.markdown(f"- 누락 서류는 {', '.join(docs.get('missing_docs') or []) or '없음'}입니다.")
+    st.markdown(f"- 청구 서류 준비율은 {docs.get('readiness_percent', 0)}%입니다.")
     if review.get("reasons"):
         st.markdown("**상담원 확인 사유**")
         _render_bullets(review.get("reasons"), "없음")
@@ -350,7 +339,7 @@ def _render_agent_handoff(handoff: dict[str, Any]) -> None:
         st.markdown("**복수 상품 검토 결과**")
         for item in _as_list(multi.get("policy_summaries")):
             st.markdown(
-                f"- {item.get('product_name', '확인 필요')}: "
+                f"- {item.get('product_name', '확인 필요')} - "
                 f"{item.get('section_title', '상품 기준 검토')} / {item.get('coverage_label', '추가 확인 필요')}"
             )
         if multi.get("cross_policy_cautions"):

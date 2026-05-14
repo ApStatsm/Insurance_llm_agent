@@ -2,21 +2,10 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime, timezone
-import re
 from typing import Any
 
 from app.pipeline.diagnosis_report import LEGAL_DISCLAIMER
 from app.pipeline.step0.validator import build_audit_event, validate_node_entry, validate_node_update
-
-try:
-    from app.core.formatting import strip_source_markers
-except ImportError:
-    def strip_source_markers(value: Any) -> str:
-        text = "" if value is None else str(value)
-        text = re.sub(r"\s*\[(?:출처|근거):[^\]]+\]", "", text)
-        text = re.sub(r"[ \t]+\n", "\n", text)
-        text = re.sub(r"\n{3,}", "\n\n", text)
-        return text.strip()
 
 
 ASSERTIVE_PHRASES = (
@@ -33,8 +22,6 @@ def _utc_now_iso() -> str:
 
 
 def _has_supporting_evidence(content: str, draft: dict[str, Any]) -> bool:
-    if "[출처:" in content or "[근거:" in content:
-        return True
     if draft.get("citations"):
         return True
     diagnosis_result = draft.get("diagnosis_result") or {}
@@ -87,7 +74,7 @@ def manager_review(state: dict[str, Any]) -> dict[str, Any]:
     if _contains_assertive_phrase(content):
         reasons.append("확언 금지 룰 위반")
     if not _has_supporting_evidence(content, draft):
-        reasons.append("출처 표기 누락")
+        reasons.append("근거 데이터 누락")
 
     if reasons:
         review_note = {
@@ -113,7 +100,7 @@ def manager_review(state: dict[str, Any]) -> dict[str, Any]:
         )
         return updated
 
-    safe_content = strip_source_markers(_sanitize_assertive(content))
+    safe_content = _sanitize_assertive(content)
     diagnosis_result = _sanitize_nested_text(draft.get("diagnosis_result") or {})
     if isinstance(diagnosis_result, dict):
         diagnosis_result["disclaimer"] = LEGAL_DISCLAIMER
