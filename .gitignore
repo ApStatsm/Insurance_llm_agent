@@ -5,34 +5,20 @@
 .env.*
 *.key
 secrets.json
-**/Gemini api.txt
-**/gemini_api.txt
-**/openai_api.txt
 
 # ==========================================
 # 개인정보 / 데이터
 # ==========================================
-**/customers.csv
-**/complaint_db.csv
 audit_log.csv
 *.log
 
-# 업로드된 고객 자료 (CUST-* 등 식별자 포함)
-data/uploads/
-data/tickets/
-data/customer_db/
-
 # ==========================================
-# Vector DB / 임베딩 (용량 크고 재생성 가능)
+# Vector DB (용량 크고 재생성 가능)
 # ==========================================
 *_chroma_db/
 *_chroma_db_last/
+precedent_chroma_db/
 chroma.sqlite3
-data/vectorstore/
-data/processed/
-
-# 원본 PDF (저작권/용량)
-data/raw_pdfs/
 
 # ==========================================
 # Python
@@ -56,7 +42,6 @@ dist/
 venv/
 env/
 ENV/
-.risk/
 
 # ==========================================
 # Jupyter
@@ -65,16 +50,10 @@ ENV/
 *-checkpoint.ipynb
 
 # ==========================================
-# Streamlit
-# ==========================================
-.streamlit/secrets.toml
-
-# ==========================================
 # IDE / 에디터
 # ==========================================
 .vscode/
 .idea/
-.claude/
 *.swp
 *.swo
 
@@ -85,7 +64,7 @@ ENV/
 Thumbs.db
 
 # ==========================================
-# 모델 캐시
+# Hugging Face / 모델 캐시
 # ==========================================
 .cache/
 huggingface/

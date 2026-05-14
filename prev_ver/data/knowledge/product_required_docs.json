@@ -1,0 +1,166 @@
+{
+  "claim_scenarios": {
+    "auto": {
+      "flood": {
+        "label": "자동차 침수 사고",
+        "required_doc_groups": [
+          {
+            "label": "사고 확인 서류",
+            "any_of": ["사고사실확인서"],
+            "reason": "사고 경위와 발생일 확인을 위해 필요할 수 있습니다."
+          },
+          {
+            "label": "수리비 확인 서류",
+            "any_of": ["수리견적서"],
+            "reason": "차량 손상 범위와 수리금액 확인을 위해 필요할 수 있습니다."
+          },
+          {
+            "label": "차량 확인 서류",
+            "any_of": ["차량등록증"],
+            "reason": "가입 차량과 제출 서류의 차량 일치 여부 확인을 위해 필요할 수 있습니다."
+          },
+          {
+            "label": "손상 확인 자료",
+            "any_of": ["침수 사진"],
+            "reason": "침수 또는 파손 상태 확인을 위해 필요할 수 있습니다."
+          }
+        ],
+        "key_fields": ["vehicle_number", "accident_date", "repair_amount", "damage_type"]
+      }
+    },
+    "indemnity": {
+      "manual_therapy": {
+        "label": "실손 도수치료",
+        "required_doc_groups": [
+          {
+            "label": "진료비 영수증",
+            "any_of": ["진료비 영수증"],
+            "reason": "실제 결제 금액 확인을 위해 필요할 수 있습니다."
+          },
+          {
+            "label": "진료비 세부내역",
+            "any_of": ["진료비 세부내역서"],
+            "reason": "도수치료 등 비급여 항목 확인을 위해 필요할 수 있습니다."
+          },
+          {
+            "label": "진단 또는 진료 확인 서류",
+            "any_of": ["진단서", "진료확인서"],
+            "reason": "치료 목적과 진료 내용을 확인하기 위해 필요할 수 있습니다."
+          }
+        ],
+        "key_fields": ["patient_name", "hospital_name", "treatment_date", "total_amount", "treatment_type"]
+      }
+    },
+    "cancer": {
+      "diagnosis_benefit": {
+        "label": "암 진단비",
+        "required_doc_groups": [
+          {
+            "label": "진단서",
+            "any_of": ["진단서"],
+            "reason": "진단명과 진단일 확인을 위해 필요할 수 있습니다."
+          },
+          {
+            "label": "진단 확정 근거",
+            "any_of": ["병리보고서"],
+            "reason": "약관상 암 진단 확정 근거 확인을 위해 필요할 수 있습니다."
+          },
+          {
+            "label": "진료비 영수증",
+            "any_of": ["진료비 영수증"],
+            "reason": "진료 및 청구 내역 확인을 위해 필요할 수 있습니다."
+          }
+        ],
+        "key_fields": ["patient_name", "diagnosis_name", "diagnosis_date", "pathology_result"]
+      }
+    },
+    "dental": {
+      "prosthetic": {
+        "label": "치아 보철 치료",
+        "required_doc_groups": [
+          {
+            "label": "진료비 영수증",
+            "any_of": ["진료비 영수증"],
+            "reason": "치료비 결제 내역 확인을 위해 필요할 수 있습니다."
+          },
+          {
+            "label": "치과 진료기록",
+            "any_of": ["진료확인서", "진단서"],
+            "reason": "치료 내용과 치료일 확인을 위해 필요할 수 있습니다."
+          },
+          {
+            "label": "영상 또는 치료 확인 자료",
+            "any_of": ["엑스레이", "치료 전후 사진"],
+            "reason": "보철 치료 상태 확인을 위해 필요할 수 있습니다."
+          }
+        ],
+        "key_fields": ["patient_name", "hospital_name", "treatment_date", "treatment_type", "total_amount"]
+      }
+    }
+  },
+  "default": ["receipt", "medical_statement"],
+  "rules": [
+    {
+      "product_keyword": "실손",
+      "required_docs": ["receipt", "medical_statement", "treatment_detail"]
+    },
+    {
+      "product_keyword": "암",
+      "required_docs": ["receipt", "diagnosis_certificate", "pathology_report"]
+    },
+    {
+      "product_keyword": "치아",
+      "required_docs": ["receipt", "dental_treatment_record", "xray_image"]
+    },
+    {
+      "product_keyword": "자동차",
+      "required_docs": ["repair_estimate", "accident_report", "vehicle_registration"]
+    }
+  ],
+  "rider_required_docs": {
+    "렌터카특약": ["rental_receipt", "rental_contract"],
+    "긴급출동특약": ["roadside_assistance_certificate"],
+    "자기차량손해": ["repair_completion_certificate", "vehicle_registration"],
+    "대물확장특약": ["third_party_repair_estimate"],
+    "재진단암특약": ["re_diagnosis_cancer_certificate"],
+    "고액암특약": ["high_value_cancer_certificate"],
+    "항암치료특약": ["chemotherapy_certificate", "prescription"],
+    "임플란트특약": ["implant_treatment_certificate", "xray_image"],
+    "크라운특약": ["crown_treatment_certificate"],
+    "보철치료특약": ["prosthetic_treatment_certificate"]
+  },
+  "doc_type_aliases": {
+    "영수증": "receipt",
+    "receipt": "receipt",
+    "진단서": "diagnosis_certificate",
+    "medical_statement": "medical_statement",
+    "진료비세부내역서": "treatment_detail",
+    "treatment_detail": "treatment_detail",
+    "병리보고서": "pathology_report",
+    "pathology_report": "pathology_report",
+    "치과진료기록": "dental_treatment_record",
+    "dental_treatment_record": "dental_treatment_record",
+    "엑스레이": "xray_image",
+    "xray_image": "xray_image",
+    "수리견적서": "repair_estimate",
+    "estimate": "repair_estimate",
+    "사고사실확인서": "accident_report",
+    "accident_report": "accident_report",
+    "차량등록증": "vehicle_registration",
+    "vehicle_registration": "vehicle_registration",
+    "pdf": "pdf",
+    "misc": "misc",
+    "rental_receipt": "rental_receipt",
+    "rental_contract": "rental_contract",
+    "roadside_assistance_certificate": "roadside_assistance_certificate",
+    "repair_completion_certificate": "repair_completion_certificate",
+    "third_party_repair_estimate": "third_party_repair_estimate",
+    "re_diagnosis_cancer_certificate": "re_diagnosis_cancer_certificate",
+    "high_value_cancer_certificate": "high_value_cancer_certificate",
+    "chemotherapy_certificate": "chemotherapy_certificate",
+    "prescription": "prescription",
+    "implant_treatment_certificate": "implant_treatment_certificate",
+    "crown_treatment_certificate": "crown_treatment_certificate",
+    "prosthetic_treatment_certificate": "prosthetic_treatment_certificate"
+  }
+}

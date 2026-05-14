@@ -1,0 +1,23 @@
+# 🧠 1. LLM 및 에이전트 두뇌 (LangChain & OpenAI)
+langchain==1.2.17
+langchain-core==1.3.2
+langchain-openai
+openai
+streamlit
+PyMuPDF
+protobuf==3.20.3
+
+# 🗄️ 2. Vector DB 및 임베딩 모델 (Chroma & BGE-m3)
+langchain-chroma==1.1.0
+chromadb==1.5.9
+langchain-huggingface==1.2.2
+sentence-transformers==5.1.2
+
+# 📄 3. 문서 파싱 (LlamaParse)
+llama-parse==0.6.94
+llama-index-core==0.14.21
+
+# 🛠️ 4. 기타 유틸리티 (환경 변수 관리 및 주피터 노트북)
+python-dotenv
+ipykernel
+jupyter
