@@ -10,10 +10,9 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_chroma import Chroma
 
 # ==========================================
-# API 키 세팅
+# API 키 세팅 (환경변수에서 읽기)
 # ==========================================
-if "GOOGLE_API_KEY" not in os.environ:
-    os.environ["GOOGLE_API_KEY"] = "AIzaSyAW7UhI1KlYVgffdmR0V0FAyR_DoV0Ie8Q"
+assert os.environ.get("GOOGLE_API_KEY"), "GOOGLE_API_KEY 환경변수를 설정해주세요"
 
 # ==========================================
 # 임베딩 모델 (파싱 노트북과 동일하게 유지)
